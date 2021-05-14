@@ -3,7 +3,7 @@
     <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>服务器常用软件安装记录 | sgaxun&#39;s blog</title>
-<link rel="shortcut icon" href="https://blog.sgaxun.me/favicon.ico?v=1620967122168">
+<link rel="shortcut icon" href="https://blog.sgaxun.me/favicon.ico?v=1620977943859">
 <link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
 <link rel="stylesheet" href="https://blog.sgaxun.me/styles/main.css">
 <link rel="alternate" type="application/atom+xml" title="服务器常用软件安装记录 | sgaxun&#39;s blog - Atom Feed" href="https://blog.sgaxun.me/atom.xml">
@@ -22,7 +22,7 @@
       <div class="main-content">
         <div class="site-header">
   <a href="https://blog.sgaxun.me">
-  <img class="avatar" src="https://blog.sgaxun.me/images/avatar.png?v=1620967122168" alt="">
+  <img class="avatar" src="https://blog.sgaxun.me/images/avatar.png?v=1620977943859" alt="">
   </a>
   <h1 class="site-title">
     sgaxun&#39;s blog
@@ -94,7 +94,7 @@
                 2018-12-14
               </span>
               <span>
-                1 min read
+                3 min read
               </span>
               
             </div>
@@ -103,13 +103,124 @@
             
             <div class="post-content-wrapper">
               <div class="post-content">
-                <h1 id="背景">背景</h1>
+                <h2 id="背景">背景</h2>
 <p>日常在服务器安装软件的场景发生的不是太多，每次安装总是记不住步骤,总是需要上网查,每次查到的内容还不一样，并不能做到加深记忆,因此产生了记录一下自己日常的操作习惯的想法，并为此研究了一下自己搭建博客，发现利用Github可以在不自己购买服务器的情况下非常简单的搭建起来，下篇文章我会介绍使用Github+Gridea搭建博客的方法。</p>
+<p><em>本文安装的软件都是基于Centos 7</em></p>
+<h3 id="nginx">Nginx</h3>
+<h4 id="yum安装">yum安装</h4>
+<p>yum安装方式非常简单,一条命令即可实现安装和卸载</p>
+<pre><code class="language-shell">yum -y install nginx
+yum remove nginx
+</code></pre>
+<p>yum安装后配置文件的路径是 <code>/etc/nginx/</code><br>
+启动nginx</p>
+<pre><code class="language-shell">service nginx start
+</code></pre>
+<p>关闭nginx</p>
+<pre><code class="language-shell">service nginx stop
+</code></pre>
+<p>重载配置</p>
+<pre><code class="language-shell">service nginx reload
+</code></pre>
+<p>重启服务</p>
+<pre><code class="language-shell">service nginx restart
+</code></pre>
+<p>设置开机启动</p>
+<pre><code class="language-shell">systemctl enable nginx
+</code></pre>
+<h4 id="源码安装">源码安装</h4>
+<p>源码安装之前需要安装一些依赖库</p>
+<ol>
+<li>
+<p>安装gcc环境</p>
+<pre><code class="language-shell">yum -y install gcc gcc-c++
+</code></pre>
+</li>
+<li>
+<p>安装pcre</p>
+<pre><code class="language-shell">sudo yum -y install pcre pcre-devel # 让 nginx 支持重写功能
+</code></pre>
+</li>
+<li>
+<p>安装zlib</p>
+<pre><code class="language-shell"># zlib 库提供了很多压缩和解压缩的方式，nginx 使用 zlib 对 http 包内容进行 gzip 压缩
+yum -y install zlib zlib-devel
+</code></pre>
+</li>
+<li>
+<p>安装openssl</p>
+<pre><code class="language-shell"># 安全套接字层密码库，用于通信加密
+yum -y install openssl openssl-devel
+</code></pre>
+</li>
+</ol>
+<p>下一步进行nginx安装</p>
+<p>下载压缩包并解压</p>
+<pre><code class="language-shell">cd /usr/local
+wget http://nginx.org/download/nginx-1.10.3.tar.gz
+tar -zxvf nginx-1.10.3.tar.gz
+</code></pre>
+<p>解压完成后进入/nginx-1.10.3目录进行源码编译安装到/usr/local/nginx/</p>
+<pre><code class="language-shell">cd nginx-1.10.3
+./configure --prefix=/usr/local/nginx #检查平台安装环境
+</code></pre>
+<p>编译并安装</p>
+<pre><code class="language-shell">make &amp;&amp; make install
+</code></pre>
+<p>启动服务</p>
+<pre><code class="language-shell">/usr/local/nginx/sbin/nginx
+curl localhost #测试访问
+</code></pre>
+<p>源码安装需要把nginx添加到service服务并设置开机启动</p>
+<p>进入目录 /usr/lib/systemd/system并新增nginx.service文件</p>
+<pre><code class="language-shell">vi /usr/lib/systemd/system/nginx.service
+</code></pre>
+<p>nginx.service文件内容如下</p>
+<pre><code class="language-shell">[Unit]
+Description=nginx - high performance web server
+Documentation=http://nginx.org/en/docs/
+After=network.target remote-fs.target nss-lookup.target
+ 
+[Service]
+Type=forking
+PIDFile=/usr/local/nginx/logs/nginx.pid 
+ExecStartPre=/usr/local/nginx/sbin/nginx -t -c /usr/local/nginx/conf/nginx.conf
+ExecStart=/usr/local/nginx/sbin/nginx
+ExecReload=/usr/local/nginx/sbin/nginx -s reload
+ExecStop=/usr/local/nginx/sbin/nginx -s quit
+PrivateTmp=true
+ 
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p>设置开机启动</p>
+<pre><code class="language-shell">systemctl enable nginx.service
+</code></pre>
+<p>其它命令</p>
+<pre><code class="language-shell">systemctl start nginx.service # 启动
+systemctl status nginx.service # 查看状态
+systemctl reload nginx.service #重新加载
+systemctl stop nginx.service #停止服务
+systemctl disable nginx.service #关闭开机启动
+</code></pre>
 
               </div>
               <div class="toc-container">
                 <ul class="markdownIt-TOC">
-<li><a href="#%E8%83%8C%E6%99%AF">背景</a></li>
+<li>
+<ul>
+<li><a href="#%E8%83%8C%E6%99%AF">背景</a>
+<ul>
+<li><a href="#nginx">Nginx</a>
+<ul>
+<li><a href="#yum%E5%AE%89%E8%A3%85">yum安装</a></li>
+<li><a href="#%E6%BA%90%E7%A0%81%E5%AE%89%E8%A3%85">源码安装</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
               </div>
