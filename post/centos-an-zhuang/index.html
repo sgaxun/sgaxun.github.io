@@ -3,7 +3,7 @@
     <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>服务器常用软件安装记录 | sgaxun&#39;s blog</title>
-<link rel="shortcut icon" href="https://blog.sgaxun.me/favicon.ico?v=1621172251440">
+<link rel="shortcut icon" href="https://blog.sgaxun.me/favicon.ico?v=1621174048799">
 <link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
 <link rel="stylesheet" href="https://blog.sgaxun.me/styles/main.css">
 <link rel="alternate" type="application/atom+xml" title="服务器常用软件安装记录 | sgaxun&#39;s blog - Atom Feed" href="https://blog.sgaxun.me/atom.xml">
@@ -22,7 +22,7 @@
       <div class="main-content">
         <div class="site-header">
   <a href="https://blog.sgaxun.me">
-  <img class="avatar" src="https://blog.sgaxun.me/images/avatar.png?v=1621172251440" alt="">
+  <img class="avatar" src="https://blog.sgaxun.me/images/avatar.png?v=1621174048799" alt="">
   </a>
   <h1 class="site-title">
     sgaxun&#39;s blog
@@ -133,26 +133,18 @@ yum remove nginx
 <pre><code class="language-shell">systemctl enable nginx
 </code></pre>
 <h3 id="源码安装">源码安装</h3>
-<p>源码安装之前需要安装一些依赖库</p>
-<ol>
-<li>安装gcc环境</li>
-</ol>
+<p>源码安装之前需要安装一些依赖库<br>
+安装gcc环境</p>
 <pre><code class="language-shell">yum -y install gcc gcc-c++
 </code></pre>
-<ol start="2">
-<li>安装pcre</li>
-</ol>
+<p>安装pcre</p>
 <pre><code class="language-shell">sudo yum -y install pcre pcre-devel # 让 nginx 支持重写功能
 </code></pre>
-<ol start="3">
-<li>安装zlib</li>
-</ol>
+<p>安装zlib</p>
 <pre><code class="language-shell"># zlib 库提供了很多压缩和解压缩的方式，nginx使用zlib对http包内容进行gzip压缩
 yum -y install zlib zlib-devel
 </code></pre>
-<ol start="4">
-<li>安装openssl</li>
-</ol>
+<p>安装openssl</p>
 <pre><code class="language-shell"># 安全套接字层密码库，用于通信加密
 yum -y install openssl openssl-devel
 </code></pre>

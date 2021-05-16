@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://blog.sgaxun.me</id>
     <title>sgaxun&apos;s blog</title>
-    <updated>2021-05-16T13:38:06.154Z</updated>
+    <updated>2021-05-16T14:07:31.159Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://blog.sgaxun.me"/>
     <link rel="self" href="https://blog.sgaxun.me/atom.xml"/>
@@ -42,26 +42,18 @@ yum remove nginx
 <pre><code class="language-shell">systemctl enable nginx
 </code></pre>
 <h3 id="源码安装">源码安装</h3>
-<p>源码安装之前需要安装一些依赖库</p>
-<ol>
-<li>安装gcc环境</li>
-</ol>
+<p>源码安装之前需要安装一些依赖库<br>
+安装gcc环境</p>
 <pre><code class="language-shell">yum -y install gcc gcc-c++
 </code></pre>
-<ol start="2">
-<li>安装pcre</li>
-</ol>
+<p>安装pcre</p>
 <pre><code class="language-shell">sudo yum -y install pcre pcre-devel # 让 nginx 支持重写功能
 </code></pre>
-<ol start="3">
-<li>安装zlib</li>
-</ol>
+<p>安装zlib</p>
 <pre><code class="language-shell"># zlib 库提供了很多压缩和解压缩的方式，nginx使用zlib对http包内容进行gzip压缩
 yum -y install zlib zlib-devel
 </code></pre>
-<ol start="4">
-<li>安装openssl</li>
-</ol>
+<p>安装openssl</p>
 <pre><code class="language-shell"># 安全套接字层密码库，用于通信加密
 yum -y install openssl openssl-devel
 </code></pre>
