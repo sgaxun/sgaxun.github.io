@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://blog.sgaxun.me</id>
     <title>sgaxun&apos;s blog</title>
-    <updated>2021-05-17T00:36:25.034Z</updated>
+    <updated>2021-05-19T02:16:02.530Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://blog.sgaxun.me"/>
     <link rel="self" href="https://blog.sgaxun.me/atom.xml"/>
@@ -108,7 +108,7 @@ systemctl disable nginx.service #关闭开机启动
 </code></pre>
 <h2 id="jdk">JDK</h2>
 <h3 id="准备安装包">准备安装包</h3>
-<p>首先去oracle官网下载jdk安装包,也可以去我共享的页面下载<a href="http://sgaxun.cn">share</a>,我下载的的是jdk-8u251-linux-x64.tar.gz,安装包上传至/usr/local目录下。</p>
+<p>首先去oracle官网下载jdk安装包,也可以去我共享的页面下载<a href="https://sgaxun.cn/jdk-8u251-linux-x64.tar.gz">share</a>,我下载的的是jdk-8u251-linux-x64.tar.gz,安装包上传至/usr/local目录下。</p>
 <h3 id="卸载openjdk如果有的话">卸载openjdk,如果有的话</h3>
 <p>如果系统带有OpenJDK,首先进行卸载.<br>
 查找已经安装的OpenJDK</p>
