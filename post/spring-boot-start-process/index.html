@@ -1,0 +1,383 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spring Boot 启动流程 | sgaxun&#39;s blog</title>
+<link rel="shortcut icon" href="https://sgaxun.github.io/favicon.ico?v=1678295674900">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://sgaxun.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Spring Boot 启动流程 | sgaxun&#39;s blog - Atom Feed" href="https://sgaxun.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="Spring Boot 的启动很简单，代码如下：
+@SpringBootApplication
+public class Application implements CommandLineRunner {
+
+    public stat..." />
+    <meta name="keywords" content="Spring Boot,Spring,Java" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://sgaxun.github.io">
+  <img class="avatar" src="https://sgaxun.github.io/images/avatar.png?v=1678295674900" alt="">
+  </a>
+  <h1 class="site-title">
+    sgaxun&#39;s blog
+  </h1>
+  <p class="site-description">
+    Life couldn’t be any more fantastic ，It’s perfect
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/sgaxun" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://twitter.com/sgaxun" target="_blank">
+          <i class="ri-twitter-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://weibo.com/sgaxun" target="_blank">
+          <i class="ri-weibo-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Spring Boot 启动流程
+            </h2>
+            <div class="post-info">
+              <span>
+                2020-10-22
+              </span>
+              <span>
+                5 min read
+              </span>
+              
+                <a href="https://sgaxun.github.io/tag/nfcD-CW0a/" class="post-tag">
+                  # Spring Boot
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/GRQmcpgWm/" class="post-tag">
+                  # Spring
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/216dW9c-b/" class="post-tag">
+                  # Java
+                </a>
+              
+            </div>
+            
+              <img class="post-feature-image" src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/20211223231202.png" alt="">
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>Spring Boot 的启动很简单，代码如下：</p>
+<pre><code class="language-java">@SpringBootApplication
+public class Application implements CommandLineRunner {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+ }
+</code></pre>
+<p>启动类上标注 @SpringBootApplication 注解，然后在 main 函数中调用 <code>SpringApplication.run(Application.class, args);</code>,这样就完成了 Spring Boot 的启动流程，写法非常简单。</p>
+<h2 id="springbootapplication">@SpringBootApplication</h2>
+<p>首先查看启动类上的注解 @SpringBootApplication 源码：</p>
+<pre><code class="language-java">@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@SpringBootConfiguration
+@EnableAutoConfiguration
+@ComponentScan(excludeFilters = {
+  @Filter(type = FilterType.CUSTOM,classes = {TypeExcludeFilter.class}), 
+  @Filter(type = FilterType.CUSTOM,classes = {AutoConfigurationExcludeFilter.class}
+)}
+)
+public @interface SpringBootApplication {
+    @AliasFor(
+        annotation = EnableAutoConfiguration.class
+    )
+    Class&lt;?&gt;[] exclude() default {};
+
+    @AliasFor(
+        annotation = EnableAutoConfiguration.class
+    )
+    String[] excludeName() default {};
+
+    @AliasFor(
+        annotation = ComponentScan.class,
+        attribute = &quot;basePackages&quot;
+    )
+    String[] scanBasePackages() default {};
+
+    @AliasFor(
+        annotation = ComponentScan.class,
+        attribute = &quot;basePackageClasses&quot;
+    )
+    Class&lt;?&gt;[] scanBasePackageClasses() default {};
+
+    @AliasFor(
+        annotation = ComponentScan.class,
+        attribute = &quot;nameGenerator&quot;
+    )
+    Class&lt;? extends BeanNameGenerator&gt; nameGenerator() default BeanNameGenerator.class;
+
+    @AliasFor(
+        annotation = Configuration.class
+    )
+    boolean proxyBeanMethods() default true;
+}
+</code></pre>
+<p>查看源码可以看出来 @SpringBootApplication 是一个组合注解，主要由 @SpringBootConfiguration，@EnableAutoConfiguration 和 @EnableAutoConfiguration 这三个注解组成。</p>
+<p>@SpringBootApplication 主要作为一个配置类，能够出发包扫描和自动配置的逻辑，从而使 Spring Boot 相关的 bean 被注册进 Spring 容器。</p>
+<h2 id="启动流程">启动流程</h2>
+<p>main 方法中仅有一行代码，<code>SpringApplication.run(Application.class, args);</code>进入 run 方法查看源码。</p>
+<pre><code class="language-java">public static ConfigurableApplicationContext run(Class&lt;?&gt; primarySource, String... args) {
+        return run(new Class[]{primarySource}, args);
+    }
+</code></pre>
+<p>上边的 run 方法中又调用了另一个静态 run 方法：</p>
+<pre><code class="language-java">public static ConfigurableApplicationContext run(Class&lt;?&gt;[] primarySources, String[] args) {
+        return (new SpringApplication(primarySources)).run(args);
+    }
+</code></pre>
+<p>上边的 run 方法中构建了一个 SpringApplication 对象，然后调用其 run 方法来启动 Spring Boot 项目，查看 SpringApplication 对象的run 方法源码：</p>
+<pre><code class="language-java">public ConfigurableApplicationContext run(String... args) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        ConfigurableApplicationContext context = null;
+        Collection&lt;SpringBootExceptionReporter&gt; exceptionReporters = new ArrayList();
+        this.configureHeadlessProperty();
+        SpringApplicationRunListeners listeners = this.getRunListeners(args);
+        listeners.starting();
+
+        Collection exceptionReporters;
+        try {
+            ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+            ConfigurableEnvironment environment = this.prepareEnvironment(listeners, applicationArguments);
+            this.configureIgnoreBeanInfo(environment);
+            Banner printedBanner = this.printBanner(environment);
+            context = this.createApplicationContext();
+            exceptionReporters = this.getSpringFactoriesInstances(SpringBootExceptionReporter.class, new Class[]{ConfigurableApplicationContext.class}, context);
+            this.prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+            this.refreshContext(context);
+            this.afterRefresh(context, applicationArguments);
+            stopWatch.stop();
+            if (this.logStartupInfo) {
+                (new StartupInfoLogger(this.mainApplicationClass)).logStarted(this.getApplicationLog(), stopWatch);
+            }
+
+            listeners.started(context);
+            this.callRunners(context, applicationArguments);
+        } catch (Throwable var10) {
+            this.handleRunFailure(context, var10, exceptionReporters, listeners);
+            throw new IllegalStateException(var10);
+        }
+
+        try {
+            listeners.running(context);
+            return context;
+        } catch (Throwable var9) {
+            this.handleRunFailure(context, var9, exceptionReporters, (SpringApplicationRunListeners)null);
+            throw new IllegalStateException(var9);
+        }
+    }
+</code></pre>
+<h3 id="启动步骤">启动步骤</h3>
+<ol>
+<li>
+<p>从<code>spring.factories</code>配置文件中<strong>加载</strong><code>**EventPublishingRunListener**</code><strong>对象</strong>，该对象拥有<code>SimpleApplicationEventMulticaster</code>属性，即在SpringBoot启动过程的不同阶段用来发射内置的生命周期事件</p>
+</li>
+<li>
+<p><strong>准备环境变量</strong>，包括系统变量，环境变量，命令行参数，默认变量，<code>servlet</code>相关配置变量，随机值以及配置文件（比如<code>application.properties</code>）等。</p>
+</li>
+<li>
+<p>控制台**打印SpringBoot的<code>bannner</code>标志。</p>
+</li>
+<li>
+<p><strong>根据不同类型环境创建不同类型的<code>applicationcontext</code>容器</strong>，因为这里是<code>servlet</code>环境，所以创建的是<code>AnnotationConfigServletWebServerApplicationContext</code>容器对象。</p>
+</li>
+<li>
+<p>从<code>spring.factories</code>配置文件中<strong>加载</strong><code>**FailureAnalyzers**</code><strong>对象</strong>,用来报告SpringBoot启动过程中的异常。</p>
+</li>
+<li>
+<p><strong>为刚创建的容器对象做一些初始化工作</strong>，准备一些容器属性值等，对<code>ApplicationContext</code>应用一些相关的后置处理和调用各个<code>ApplicationContextInitializer</code>的初始化方法来执行一些初始化逻辑等。</p>
+</li>
+<li>
+<p><strong>刷新容器</strong>，这一步至关重要。比如调用<code>bean factory</code>的后置处理器，注册<code>BeanPostProcessor</code>后置处理器，初始化事件广播器且广播事件，初始化剩下的单例<code>bean</code>和SpringBoot创建内嵌的<code>Tomcat</code>服务器等等重要且复杂的逻辑都在这里实现，主要步骤可见代码的注释，关于这里的逻辑会在以后的spring源码分析专题详细分析。</p>
+</li>
+<li>
+<p><strong>执行刷新容器后的后置处理逻辑</strong>，注意这里为空方法。</p>
+</li>
+<li>
+<p><strong>调用<code>ApplicationRunner</code>和<code>CommandLineRunner</code>的run方法</strong>，我们实现这两个接口可以在spring容器启动后需要的一些东西比如加载一些业务数据等。</p>
+</li>
+<li>
+<p><strong>报告启动异常</strong>，即若启动过程中抛出异常，此时用<code>FailureAnalyzers</code>来报告异常。</p>
+</li>
+<li>
+<p>最终<strong>返回容器对象</strong>，这里调用方法没有声明对象来接收。</p>
+<p>当然在SpringBoot启动过程中，每个不同的启动阶段会分别发射不同的内置生命周期事件，比如在准备<code>environment</code>前会发射<code>ApplicationStartingEvent</code>事件，在<code>environment</code>准备好后会发射<code>ApplicationEnvironmentPreparedEvent</code>事件，在刷新容器前会发射<code>ApplicationPreparedEvent</code>事件等，总之SpringBoot总共内置了7个生命周期事件，除了标志SpringBoot的不同启动阶段外，同时一些监听器也会监听相应的生命周期事件从而执行一些启动初始化逻辑。</p>
+</li>
+</ol>
+<p>梳理过后能够简单的对 Spring Boot 有一个整体的认识。</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#springbootapplication">@SpringBootApplication</a></li>
+<li><a href="#%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B">启动流程</a>
+<ul>
+<li><a href="#%E5%90%AF%E5%8A%A8%E6%AD%A5%E9%AA%A4">启动步骤</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://sgaxun.github.io/post/jvm-deepin-2/">
+              <h3 class="post-title">
+                JVM 原理探究之二
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: '0154dac2d8f124ab8f32',
+    clientSecret: '2cd5ab9c1c2537bd87d00d6bebc2062845b98e9a',
+    repo: 'sgaxun.github.io',
+    owner: 'sgaxun',
+    admin: ['sgaxun'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  <a href="https://beian.miit.gov.cn" target="_blank">豫ICP备19001791号-1</a>
+  <a class="rss" href="https://sgaxun.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1899 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://sgaxun.github.io</id>
+    <title>sgaxun&apos;s blog</title>
+    <updated>2023-03-08T17:15:18.583Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://sgaxun.github.io"/>
+    <link rel="self" href="https://sgaxun.github.io/atom.xml"/>
+    <subtitle>Life couldn’t be any more fantastic ，It’s perfect</subtitle>
+    <logo>https://sgaxun.github.io/images/avatar.png</logo>
+    <icon>https://sgaxun.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2023, sgaxun&apos;s blog</rights>
+    <entry>
+        <title type="html"><![CDATA[使用Touch ID和Apple Watch实现终端下的sudo授权]]></title>
+        <id>https://sgaxun.github.io/post/sudo-touchId-watch/</id>
+        <link href="https://sgaxun.github.io/post/sudo-touchId-watch/">
+        </link>
+        <updated>2021-12-14T16:42:31.000Z</updated>
+        <summary type="html"><![CDATA[<blockquote>
+<p>无意间见到一篇文章介绍<a href="https://1991421.cn/2020/12/10/74e2afe6/">终端下利用Touch ID，Apple Watch实现sudo授权</a>，感觉很好用，用了好久,最近更换了Apple芯片的mac后发现使用watch的方法失效了，记录一下安装以及解决办法。</p>
+</blockquote>
+]]></summary>
+        <content type="html"><![CDATA[<blockquote>
+<p>无意间见到一篇文章介绍<a href="https://1991421.cn/2020/12/10/74e2afe6/">终端下利用Touch ID，Apple Watch实现sudo授权</a>，感觉很好用，用了好久,最近更换了Apple芯片的mac后发现使用watch的方法失效了，记录一下安装以及解决办法。</p>
+</blockquote>
+<!-- more -->
+<h3 id="下载安装">下载安装</h3>
+<p>下载两个仓库，分别是<a href="https://github.com/Reflejo/pam-touchID">pam-touchID</a>和<a href="https://github.com/biscuitehh/pam-watchid">pam-watchid</a></p>
+<pre><code class="language-shell">git clone https://github.com/Reflejo/pam-touchID
+git clone https://github.com/biscuitehh/pam-watchid
+# 分别进入两个项目的根目录执行安装
+sudo make install
+</code></pre>
+<h3 id="apple芯片pam-watchid项目问题修复">Apple芯片pam-watchid项目问题修复</h3>
+<p>如果你是Apple芯片的Mac,watch项目无法使用，报错:<em>unable to initialize PAM: No such file or directory</em>。需要修改配置文件重新安装</p>
+<p>首先在终端中输入以下命令打印swift版本</p>
+<pre><code class="language-shell">echo $(swift -version)
+# 打印结果
+Apple Swift version 5.5.2 (swiftlang-1300.0.47.5 clang-1300.0.29.30) Target: arm64-apple-darwin21.2.0
+</code></pre>
+<p>复制打印结果中Target后边的内容，编辑pam-watchid项目中Makefile文件,替换文件中TARGET=后边的内容</p>
+<pre><code class="language-shell">TARGET = arm64-apple-darwin21.2.0
+</code></pre>
+<p>重新执行安装</p>
+<pre><code class="language-shell">sudo make install
+</code></pre>
+<h3 id="编辑sudo配置开启授权">编辑sudo配置，开启授权</h3>
+<pre><code class="language-shell">sudo vi /etc/pam.d/sudo
+</code></pre>
+<p>在文件最上边增加以下内容</p>
+<pre><code class="language-shell">auth sufficient pam_watchid.so &quot;reason=execute a 	command as root&quot;
+auth sufficient pam_touchid.so &quot;reason=execute a 	command as root&quot;
+</code></pre>
+<p>文件保存后即时生效</p>
+<h3 id="授权顺序">授权顺序</h3>
+<p>配置文件中顺序就是授权使用的优先顺序,原博主的使用习惯是touchid优先,因为我平时使用外接键盘，所以touchid优先反而不方便，因此调整了顺序，watchid优先。</p>
+<p>使用效果如下图</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211216220108462.png" alt="image-20211216220108462" loading="lazy"></figure>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[JVM 原理探究之三]]></title>
+        <id>https://sgaxun.github.io/post/jvm-deepin-3/</id>
+        <link href="https://sgaxun.github.io/post/jvm-deepin-3/">
+        </link>
+        <updated>2021-07-13T14:53:33.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="高效并发">高效并发</h2>
+<h3 id="java-内存模型">Java 内存模型</h3>
+<p>JCP 定义了一种 Java 内存模型，以前是在 JVM 规范中，后来独立出来成为 JSR-133（Java 内存模型和线程规范修订）。</p>
+<p>内存模型：在特定的操作协议下，对特定的内存或高速缓存进行读写访问的过程抽象。</p>
+<p>Java 内存模型主要关注 JVM 中把变量值存储到内存和从内存中取出变量值这样的底层细节。</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220118233151361.png" alt="image-20220118233151361" style="zoom:50%;" />
+<p>所有变量（共享的）都存储在主内存中，每个线程都有自己的工作内存;工作内存中保存该线程使用到的变量的主内存副本拷贝。</p>
+<p>线程对变量的所有操作（读、写）都应该在工作内存中完成。</p>
+<p>不同线程之间不能相互访问工作内存，交互数据要通过主内存。</p>
+<h3 id="内存间的交互操作">内存间的交互操作</h3>
+<p>Java 内存模型规定了一些操作来实现内存间交互，JVM 会保证它们是原子性的。</p>
+<ul>
+<li>
+<p>lock：锁定，把变量标识为线程独占，作用于主内存变量。</p>
+</li>
+<li>
+<p>unlock：解锁，把锁定的变量释放，别的线程才能使用，作用于主内存变量。</p>
+</li>
+<li>
+<p>read：读取，把变量值从主内存读取到工作内存。</p>
+</li>
+<li>
+<p>load：载入，把 rea 读取到的值放入工作内存的变量副本中。</p>
+</li>
+<li>
+<p>use：使用，把工作内存中一个变量的值传递给执行引擎。</p>
+</li>
+<li>
+<p>assign：赋值，把从执行引擎接收到的值赋给工作内存里面的变量。</p>
+</li>
+<li>
+<p>store：存储，把工作内存中一个变量的值传递到主内存中。</p>
+</li>
+<li>
+<p>write：写入，把 store 进来的数据存放入主内存变量中。</p>
+</li>
+</ul>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220118234312212.png" alt="image-20220118234312212" style="zoom:50%;" />
+<h4 id="内存间交互操作规则">内存间交互操作规则</h4>
+<ul>
+<li>不允许 read 和 load、store和 write 操作之一单独出现，以上两个操作必须按顺序执行，但不保证连续执行，也就是说，read 与 load 之间、store与 write 之间是可插入其它指令的。</li>
+<li>不允许一个线程丢弃它的最近的 assign 操作，即变量在工作内存中改变了之后必须把该变化同步回主内存。</li>
+<li>不允许一个线程无原因的（没有发生过任何 assign 操作）把数据从线程的工作内存中同步回主内存。</li>
+<li>一个新的变量只能从主内存中「诞生」，不允许在工作内存中直接使用一个未被初始化的变量，也就是对一个变量实施 use 和 store 操作之前，必须先执行过了 load 和 assign 操作。</li>
+<li>一个变量在同一个时刻只允许一条线程对其执行 lock 操作，但 lock 操作可以被同一条线程重复执行多次，多次执行 lock 后，只有执行相同次数的 unlock 操作，变量才会被解锁。</li>
+<li>如果对一个变量执行了 lock 操作，将会清空工作内存中此变量的值，在执行引擎使用这个变量之前，需要重新执行 load 或 assig 操作初始化变量的值。</li>
+<li>如果一个变量没有被 lock 操作锁定，则不允许对它执行 unlock 操作，也不能 unlock 一个被其它线程锁定的变量。</li>
+<li>对一个变量执行 unlock 操作之前，必须先把此变量同步回主内存（执行 store 和 write 操作）。</li>
+</ul>
+<h3 id="多线程中的可见性">多线程中的可见性</h3>
+<p>可见性：就是一个线程修改了变量，其他线程可以知道。</p>
+<h2 id="性能监控与故障处理工具">性能监控与故障处理工具</h2>
+<h2 id="jvm调优">JVM调优</h2>
+<h2 id="面试">面试</h2>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Spring Boot 项目打包 + Shell 脚本部署]]></title>
+        <id>https://sgaxun.github.io/post/spring-boot-shell/</id>
+        <link href="https://sgaxun.github.io/post/spring-boot-shell/">
+        </link>
+        <updated>2021-06-23T14:07:58.000Z</updated>
+        <content type="html"><![CDATA[<p>分享 Spring Boot 打包并结合 Shell 脚本命令部署，重点在分享一个shell 程序启动工具，方便操作。</p>
+<h2 id="profiles指定不同环境的配置">profiles指定不同环境的配置</h2>
+<p>通常一套程序分为了很多个部署环境：开发，测试，线上等，我们要想对这些环境区分配置文件，可以通过两种方式：</p>
+<ul>
+<li>通过application.yml中编码指定 profile.active=dev 方式指定</li>
+<li>通过mvn中profiles来区分不同环境对应的配置文件夹，人工可以手动在idea勾选生成不同环境的包</li>
+</ul>
+<p>第一种方式过于简单无需介绍，这里介绍第二种，首先在 mvn 中配置如下内容：</p>
+<pre><code class="language-xml">&lt;profiles&gt;
+	&lt;profile&gt;
+		&lt;id&gt;node&lt;/id&gt;
+		&lt;properties&gt;
+			&lt;!--传递给脚本的参数值--&gt;
+			&lt;activeProfile&gt;node&lt;/activeProfile&gt;
+			&lt;package-name&gt;${scripts_packageName}&lt;/package-name&gt;
+			&lt;boot-main&gt;${scripts_bootMain}&lt;/boot-main&gt;
+		&lt;/properties&gt;
+		&lt;activation&gt;
+			&lt;activeByDefault&gt;true&lt;/activeByDefault&gt;
+		&lt;/activation&gt;
+	&lt;/profile&gt;
+	&lt;profile&gt;
+		&lt;id&gt;node1&lt;/id&gt;
+		&lt;properties&gt;
+			&lt;activeProfile&gt;node1&lt;/activeProfile&gt;
+			&lt;package-name&gt;${scripts_packageName}&lt;/package-name&gt;
+			&lt;boot-main&gt;${scripts_bootMain}&lt;/boot-main&gt;
+		&lt;/properties&gt;
+	&lt;/profile&gt;
+	&lt;profile&gt;
+		&lt;id&gt;node2&lt;/id&gt;
+		&lt;properties&gt;
+			&lt;activeProfile&gt;node2&lt;/activeProfile&gt;
+			&lt;package-name&gt;${scripts_packageName}&lt;/package-name&gt;
+			&lt;boot-main&gt;${scripts_bootMain}&lt;/boot-main&gt;
+		&lt;/properties&gt;
+	&lt;/profile&gt;
+&lt;/profiles&gt;
+</code></pre>
+<p>id： 用来指定不同环境配置文件所在的目录。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640-20211226222427565.png" alt="图片" loading="lazy"></figure>
+<p>properties： 该节点中的节点是可作为参数传递给其他配置文件，如我这里的package-name节点值就可以在另外的assembly.xml或者shell脚本文件中通过${package-name}获取到，如下：</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640-20211226222452998.png" alt="图片" loading="lazy"></figure>
+<p>activeByDefault： 指定默认环境配置文件夹</p>
+<h2 id="maven-assembly-plugin打发布压缩包"><strong>maven-assembly-plugin打发布压缩包</strong></h2>
+<p>对于springboot程序打包，可以分为jar和war，这里是jar包；有场景是配置文件或者第三方等依赖包不想放到工程jar中，并且把这些文件压缩成一个zip包，方便上传到linux；此时通过maven-assembly-plugin和maven-jar-plugin就可以做到，mvn的配置如：</p>
+<pre><code class="language-xml">&lt;plugin&gt;
+	&lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+	&lt;artifactId&gt;maven-jar-plugin&lt;/artifactId&gt;
+	&lt;version&gt;2.6&lt;/version&gt;
+	&lt;configuration&gt;
+		&lt;archive&gt;
+			&lt;addMavenDescriptor&gt;false&lt;/addMavenDescriptor&gt;
+			&lt;manifest&gt;
+				&lt;addClasspath&gt;true&lt;/addClasspath&gt;
+				&lt;classpathPrefix&gt;lib/&lt;/classpathPrefix&gt;
+				&lt;mainClass&gt;${scripts_bootMain}&lt;/mainClass&gt;
+			&lt;/manifest&gt;
+		&lt;/archive&gt;
+		&lt;!--打包排除项--&gt;
+		&lt;excludes&gt;
+			&lt;exclude&gt;**/*.yml&lt;/exclude&gt;
+			&lt;exclude&gt;**/*.properties&lt;/exclude&gt;
+			&lt;exclude&gt;**/*.xml&lt;/exclude&gt;
+			&lt;exclude&gt;**/*.sh&lt;/exclude&gt;
+		&lt;/excludes&gt;
+	&lt;/configuration&gt;
+	&lt;executions&gt;
+		&lt;execution&gt;
+			&lt;id&gt;make-a-jar&lt;/id&gt;
+			&lt;phase&gt;compile&lt;/phase&gt;
+			&lt;goals&gt;
+				&lt;goal&gt;jar&lt;/goal&gt;
+			&lt;/goals&gt;
+		&lt;/execution&gt;
+	&lt;/executions&gt;
+&lt;/plugin&gt;
+&lt;plugin&gt;
+  &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+  &lt;artifactId&gt;maven-assembly-plugin&lt;/artifactId&gt;
+  &lt;version&gt;2.4&lt;/version&gt;
+  &lt;!-- The configuration of the plugin --&gt;
+  &lt;configuration&gt;
+    &lt;!-- Specifies the configuration file of the assembly plugin --&gt;
+    &lt;descriptors&gt;
+      &lt;descriptor&gt;${project.basedir}/src/main/assembly/assembly.xml&lt;/descriptor&gt;
+    &lt;/descriptors&gt;
+  &lt;/configuration&gt;
+  &lt;executions&gt;
+    &lt;execution&gt;
+      &lt;id&gt;make-assembly&lt;/id&gt;
+      &lt;phase&gt;package&lt;/phase&gt;
+      &lt;goals&gt;
+        &lt;goal&gt;single&lt;/goal&gt;
+      &lt;/goals&gt;
+    &lt;/execution&gt;
+  &lt;/executions&gt;
+&lt;/plugin&gt;
+</code></pre>
+<p>值得注意的地方如下几点：</p>
+<ul>
+<li>mainClass节点：用来指定启动main函数入口类路径，如这里的：com.sm.EurekaServerApplication</li>
+<li>excludes节点：排除主jar包中配置等一些列后缀文件，因为我们要包这些配置文件放到主包外面</li>
+<li>descriptor节点：用来指定assembly插件对应的assembly.xml配置文件</li>
+</ul>
+<p>有了上面mvn配置，还需要assembly.xml的配置，这里提取了结合shell脚本发布程序的配置：</p>
+<pre><code class="language-xml">&lt;assembly xmlns=&quot;http://maven.apache.org/ASSEMBLY/2.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+          xsi:schemaLocation=&quot;http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd
+http://maven.apache.org/ASSEMBLY/2.0.0 &quot;&gt;
+    &lt;id&gt;${activeProfile}&lt;/id&gt;
+    &lt;!--打包成一个用于发布的zip文件--&gt;
+    &lt;formats&gt;
+        &lt;format&gt;zip&lt;/format&gt;
+    &lt;/formats&gt;
+    &lt;!--true：zip中生成一级目录(此处屏蔽，配合脚本需要profiles后缀)--&gt;
+    &lt;includeBaseDirectory&gt;false&lt;/includeBaseDirectory&gt;
+    &lt;dependencySets&gt;
+        &lt;dependencySet&gt;
+            &lt;!--打包进zip文件的lib目录--&gt;
+            &lt;useProjectArtifact&gt;false&lt;/useProjectArtifact&gt;
+            &lt;outputDirectory&gt;${package-name}-${activeProfile}/lib&lt;/outputDirectory&gt;
+            &lt;unpack&gt;false&lt;/unpack&gt;
+        &lt;/dependencySet&gt;
+    &lt;/dependencySets&gt;
+
+    &lt;fileSets&gt;
+        &lt;!-- 配置文件打包进zip文件的conf目录 --&gt;
+        &lt;fileSet&gt;
+            &lt;directory&gt;${project.basedir}/src/main/profiles/${activeProfile}&lt;/directory&gt;
+            &lt;outputDirectory&gt;${package-name}-${activeProfile}/conf&lt;/outputDirectory&gt;
+            &lt;includes&gt;
+                &lt;include&gt;**/*&lt;/include&gt;
+                &lt;!--&lt;include&gt;*.xml&lt;/include&gt;--&gt;
+                &lt;!--&lt;include&gt;*.properties&lt;/include&gt;--&gt;
+                &lt;!--&lt;include&gt;*.yml&lt;/include&gt;--&gt;
+            &lt;/includes&gt;
+        &lt;/fileSet&gt;
+
+        &lt;!--启动脚本打包进zip文件--&gt;
+        &lt;fileSet&gt;
+            &lt;directory&gt;${project.basedir}/src/main/scripts&lt;/directory&gt;
+            &lt;outputDirectory&gt;&lt;/outputDirectory&gt;
+            &lt;includes&gt;
+                &lt;include&gt;**/*&lt;/include&gt;
+            &lt;/includes&gt;
+            &lt;!-- 文件文件权限为777 --&gt;
+            &lt;fileMode&gt;777&lt;/fileMode&gt;
+            &lt;!-- 目录权限为777 --&gt;
+            &lt;directoryMode&gt;777&lt;/directoryMode&gt;
+            &lt;!--脚本中参数变量为pom中的值 关键--&gt;
+            &lt;filtered&gt;true&lt;/filtered&gt;
+        &lt;/fileSet&gt;
+
+        &lt;!-- 项目编译出来的jar打包进zip文件 --&gt;
+        &lt;fileSet&gt;
+            &lt;directory&gt;${project.build.directory}&lt;/directory&gt;
+            &lt;outputDirectory&gt;${package-name}-${activeProfile}/&lt;/outputDirectory&gt;
+            &lt;includes&gt;
+                &lt;include&gt;*.jar&lt;/include&gt;
+            &lt;/includes&gt;
+        &lt;/fileSet&gt;
+    &lt;/fileSets&gt;
+&lt;/assembly&gt;
+</code></pre>
+<p>重点节点介绍：</p>
+<ul>
+<li>formats节点：把配置文件和jar包等压缩成什么文件格式，这里可以有：zip，tar等</li>
+<li>fileMode节点：指定scripts目录下脚本文件(这里是：shenniu_publish.sh)在linux上文件权限为777</li>
+<li>filtered节点：脚本中参数变量为pom的profiles中properties的值(该配置，是把mvn中属性值映射生成到sh文件中，如：${package-name})</li>
+</ul>
+<p>完成上面配置后，此时我们可以通过idea上勾选切换不同环境来打zip包，如图：</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640-20211226223222882.png" alt="图片" loading="lazy"></figure>
+<h2 id="startsh-脚本">start.sh 脚本</h2>
+<p>上面步骤完成了zip格式的发布包，我们再分享下启动程序的shell脚本，该脚本具有的功能如：</p>
+<ul>
+<li>解压zip+启动jar包</li>
+<li>启动jar包</li>
+<li>停止对应jar运行</li>
+<li>重启jar程序</li>
+</ul>
+<p>目前该shell中封装了两种启动jar命令的方式：</p>
+<ul>
+<li>java -cp</li>
+<li>java -jar</li>
+</ul>
+<p>如图命令格式：</p>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640-20211226223307412.png" alt="图片" loading="lazy"></figure>
+<p>全部 shell 脚本：</p>
+<pre><code class="language-shell">#!/usr/bin/env bash
+#可变参数变量
+languageType=&quot;javac&quot; #支持 java,javac,netcore 发布
+#参数值由pom文件传递
+baseZipName=&quot;${package-name}-${activeProfile}&quot; #压缩包名称 publish-test.zip的publish
+packageName=&quot;${package-name}&quot; #命令启动包名 xx.jar的xx
+mainclass=&quot;${boot-main}&quot; #java -cp启动时，指定main入口类;命令：java -cp conf;lib\*.jar;${packageName}.jar ${mainclass}
+
+#例子
+# baseZipName=&quot;publish-test&quot; #压缩包名称 publish-test.zip的publish
+# packageName=&quot;publish&quot; #命令启动包名 publish.jar的xx
+
+#固定变量
+basePath=$(cd `dirname $0`/; pwd)
+baseZipPath=&quot;${basePath}/${baseZipName}.zip&quot;  #压缩包路径
+baseDirPath=&quot;${basePath}&quot; #解压部署磁盘路径
+pid= #进程pid
+
+#解压
+function shenniu_unzip()
+{
+    echo &quot;解压---------------------------------------------&quot;
+    echo &quot;压缩包路径：${baseZipPath}&quot;
+    if [ ! `find ${baseZipPath}` ]
+    then
+        echo &quot;不存在压缩包：${baseZipPath}&quot;
+    else
+        echo &quot;解压磁盘路径：${baseDirPath}/${baseZipName}&quot;
+        echo &quot;开始解压...&quot;
+
+        #解压命令
+        unzip -od ${baseDirPath}/${baseZipName} ${baseZipPath}
+
+        #设置执行权限
+        chmod +x ${baseDirPath}/${baseZipName}/${packageName}
+
+        echo &quot;解压完成。&quot;
+    fi
+}
+
+#检测pid
+function getPid()
+{
+    echo &quot;检测状态---------------------------------------------&quot;
+    pid=`ps -ef | grep -n ${packageName} | grep -v grep | awk '{print $2}'`
+    if [ ${pid} ]
+    then
+        echo &quot;运行pid：${pid}&quot;
+    else
+        echo &quot;未运行&quot;
+    fi
+}
+
+#启动程序
+function start()
+{
+    #启动前，先停止之前的
+    stop
+    if [ ${pid} ]
+    then
+        echo &quot;停止程序失败，无法启动&quot;
+    else
+        echo &quot;启动程序---------------------------------------------&quot;
+
+        #选择语言类型
+        read -p &quot;输入程序类型(java,javac,netcore)，下一步按回车键(默认：${languageType})：&quot; read_languageType
+        if [ ${read_languageType} ]
+        then
+            languageType=${read_languageType}
+        fi
+        echo &quot;选择程序类型：${languageType}&quot;
+
+        #进入运行包目录
+        cd ${baseDirPath}/${baseZipName}
+
+        #分类启动
+        if [ &quot;${languageType}&quot; == &quot;javac&quot; ]
+        then
+            if [ ${mainclass} ]
+            then
+                nohup java -cp conf:lib\*.jar:${packageName}.jar ${mainclass} &gt;${baseDirPath}/${packageName}.out 2&gt;&amp;1 &amp;
+               #nohup java -cp conf:lib\*.jar:${packageName}.jar ${mainclass} &gt;/dev/null 2&gt;&amp;1 &amp;
+            fi
+        elif [ &quot;${languageType}&quot; == &quot;java&quot; ]
+        then
+            nohup java -jar ${baseDirPath}/${baseZipName}/${packageName}.jar &gt;/dev/null 2&gt;&amp;1 &amp;
+            # java -jar ${baseDirPath}/${baseZipName}/${packageName}.jar
+        elif [ &quot;${languageType}&quot; == &quot;netcore&quot; ]
+        then
+            #nohup dotnet run ${baseDirPath}/${baseZipName}/${packageName} &gt;/dev/null 2&gt;&amp;1 &amp;
+            nohup ${baseDirPath}/${baseZipName}/${packageName} &gt;/dev/null 2&gt;&amp;1 &amp;
+        fi
+
+        #查询是否有启动进程
+        getPid
+        if [ ${pid} ]
+        then
+            echo &quot;已启动&quot;
+            #nohup日志
+            tail -n 50 -f ${baseDirPath}/${packageName}.out
+        else
+            echo &quot;启动失败&quot;
+        fi
+    fi
+}
+
+#停止程序
+function stop()
+{
+    getPid
+    if [ ${pid} ]
+    then
+        echo &quot;停止程序---------------------------------------------&quot;
+        kill -9 ${pid}
+
+        getPid
+        if [ ${pid} ]
+        then
+            #stop
+            echo &quot;停止失败&quot;
+        else
+            echo &quot;停止成功&quot;
+        fi
+    fi
+}
+
+#启动时带参数，根据参数执行
+if [ ${#} -ge 1 ]
+then
+    case ${1} in
+        &quot;start&quot;)
+            start
+        ;;
+        &quot;restart&quot;)
+            start
+        ;;
+        &quot;stop&quot;)
+            stop
+        ;;
+        &quot;unzip&quot;)
+            #执行解压
+            shenniu_unzip
+            #执行启动
+            start
+        ;;
+        *)
+            echo &quot;${1}无任何操作&quot;
+        ;;
+    esac
+else
+    echo &quot;
+    command如下命令：
+    unzip：解压并启动
+    start：启动
+    stop：停止进程
+    restart：重启
+
+    示例命令如：./shenniu_publish start
+    &quot;
+fi
+</code></pre>
+<p>shell中的参数 package-name，activeProfile，boot-main 都是由mvn中profiles的properties中提供，是可变的参数，脚本代码本身不需要人工去修改，只需要变的是mvn的参数即可；其实在我们生成zip包的时候，shell中的参数就被替换了，可以看zip中shell文件内容。</p>
+<p>把生成的zip上传到linux上，通过命令解压：</p>
+<pre><code class="language-shell">unzip -od eureka-server-0.0.1-node eureka-server-0.0.1-node.zip
+</code></pre>
+<blockquote>
+<p>如果是在windows上编辑的这个脚本，其空格等和linux上不一样，所以运行会有问题，要解决可以使用vim命令在linux把该文件转成linux格式，如下命令：</p>
+</blockquote>
+<pre><code class="language-shell">vim shenniu_publish.sh
+set ff=unix
+:wq
+</code></pre>
+<p>运行脚本 <code>./start.sh</code></p>
+<p>该脚本提供了四个命令</p>
+<ul>
+<li>unzip 解压并启动</li>
+<li>start 启动</li>
+<li>stop 停止进程</li>
+<li>restart 重启</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Eureka 核心特性]]></title>
+        <id>https://sgaxun.github.io/post/spring-cloud-eureka/</id>
+        <link href="https://sgaxun.github.io/post/spring-cloud-eureka/">
+        </link>
+        <updated>2021-05-11T14:50:21.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="服务注册">服务注册</h2>
+<ol>
+<li>
+<p>Eureka Client 在第一次心跳时向 Eureka Server 注册</p>
+</li>
+<li>
+<p>注册时会提供诸多自身元数据:主机名，端口，健康指标URL等</p>
+</li>
+</ol>
+<h2 id="服务续约">服务续约</h2>
+<ol>
+<li>
+<p>通过发送心跳进行续约,默认30秒一次</p>
+</li>
+<li>
+<p>90秒内 Server 未受到续约,则进行服务剔除</p>
+</li>
+</ol>
+<h2 id="服务下线">服务下线</h2>
+<ol>
+<li>
+<p>Client 在优雅退出时会发送 Cancel 命令</p>
+</li>
+<li>
+<p>Server 收到 Cancel 命令时会删除该节点,kill -9不会发送 Cancel 命令</p>
+</li>
+</ol>
+<h2 id="获取注册列表信息">获取注册列表信息</h2>
+<ol>
+<li>
+<p>Client 会缓存由 Server 获取的注册表信息</p>
+</li>
+<li>
+<p>Client 会定期更新注册表信息,默认30秒一次</p>
+</li>
+<li>
+<p>Client 会处理注册表的合并等内容</p>
+</li>
+</ol>
+<h2 id="常见面试点">常见面试点</h2>
+<ul>
+<li>多注册中心比较,主要和 Zookeeper 比较
+<ol>
+<li>分布式基础: CAP理论（一致性 Consistency;可用性 Availability;分区容错性 Partition tolerance）</li>
+<li>常见注册中心: Zookeeper、Eureka 等</li>
+<li>Eureka 主要保证 AP 特性</li>
+<li>Zookeeper 是典型的 CP 特性</li>
+</ol>
+</li>
+<li>Eureka 注册慢
+<ol>
+<li>注册慢的根本原因在于 Eureka 的 AP 特性</li>
+<li>Eureka Client 有延迟注册,默认30秒</li>
+<li>Eureka Server 的响应缓存,默认30秒</li>
+<li>Eureka Server 的缓存刷新,默认30秒</li>
+</ol>
+</li>
+<li>Eureka 的自我保护
+<ol>
+<li>Eureka Server 会自动更新续约的更新阈值</li>
+<li>Eureka Server 续约更新频率低于阈值则进入保护模式</li>
+<li>自我保护模式下 Eureka Server 不会剔除任何注册信息</li>
+</ol>
+</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Spring Boot 自定义 Starter]]></title>
+        <id>https://sgaxun.github.io/post/custom-spring-boot-starter/</id>
+        <link href="https://sgaxun.github.io/post/custom-spring-boot-starter/">
+        </link>
+        <updated>2021-04-20T15:32:19.000Z</updated>
+        <content type="html"><![CDATA[<blockquote>
+<p>Spring Boot 最强大的功能就是把常用的场景抽取成了一个个 Starter，通过引入这些 Starter，再进行少量配置就能使用相应的功能。</p>
+</blockquote>
+<h2 id="概述">概述</h2>
+<p>我们也可以编写自己的自定义启动器。如果我们有一个在我们的组织内使用的内部库，它要在 Spring Boot 上下文中使用，最好也为它编写一个 Starter。</p>
+<p>这些 starters 使开发人员可以避免冗长的配置，并快速启动。但是由于后台发生了很多事情，有时很难理解注释或仅仅在pom.xml中包含依赖项是如何启用这么多功能的。</p>
+<h2 id="原理">原理</h2>
+<p>你可以到这里查看 <a href="https://www.baeldung.com/spring-boot-custom-starter">Spring 官网</a>关于 Starter 的介绍。</p>
+<h3 id="自动配置类">自动配置类</h3>
+<p>当 Spring Boot 启动时，它会在类路径中查找名叫 <em>spring.factories</em> 的文件。该文件位于 META-INF 目录中。例如以下部分片段：</p>
+<pre><code class="language-shell"># Auto Configure
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration,\
+org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfiguration,\
+org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration,\
+org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+</code></pre>
+<p>Spring Boot 会自动装载上文配置的类，RabbitMQ、Cassandra、MongoDB 和 Hibernate。</p>
+<p>可以使用 @ConditionalOnClass 来决定是否初始化，以下是 MongoAutoConfiguration 类中的代码片段。</p>
+<pre><code class="language-java">@Configuration
+@ConditionalOnClass(MongoClient.class)
+@EnableConfigurationProperties(MongoProperties.class)
+@ConditionalOnMissingBean(type = &quot;org.springframework.data.mongodb.MongoDbFactory&quot;)
+public class MongoAutoConfiguration {
+    // configuration code
+}
+</code></pre>
+<p>如果类路径中有 MongoClient 可用，此配置类将运行，并使用用默认配置设置初始化的 MongoClient 注册成 Bean。</p>
+<h3 id="自定义属性">自定义属性</h3>
+<p>类中使用 @ConfigurationProperties 读取配置文件中自定义的值。</p>
+<pre><code class="language-java">@ConfigurationProperties(prefix = &quot;spring.data.mongodb&quot;)
+public class MongoProperties {
+
+    private String host;
+
+    // other fields with standard getters and setters
+}
+</code></pre>
+<p>如果要为 MongoProperties 中的 host 自定义值，在配置文件中增加以下内容即可</p>
+<pre><code class="language-yaml">spring.data.mongodb.host = 127.0.0.1
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211222231242742.png" alt="image-20211222231242742" loading="lazy"></figure>
+<h2 id="自定义-starter">自定义 Starter</h2>
+<p>了解原理之后自定义一个 Starter 就变得简单了。</p>
+<h3 id="命名规范">命名规范</h3>
+<p><strong>官方 Starter</strong></p>
+<ul>
+<li>前缀： spring-boot-starter-</li>
+<li>模式： spring-boot-starter-模块名</li>
+<li>举例： spring-boot-starter-web、spring-boot-starter-jdbc</li>
+</ul>
+<p><strong>自定义 Starter</strong></p>
+<ul>
+<li>后缀： -spring-boot-starter</li>
+<li>模式： 模块-spring-boot-starter</li>
+<li>距离： mybatis-spring-boot-starter</li>
+</ul>
+<h3 id="创建-starter">创建 Starter</h3>
+<p>首先创建一个 spring-boot-custom-starter 的项目，项目代码我已上传到我的 <a href="https://github.com/sgaxun/spring-boot-custom-starter">Github</a>，包含三个项目，结构如下图</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211223222801328.png" alt="image-20211223222801328" style="zoom:50%;" />
+<ul>
+<li>hello-autoconfigure：starter 的具体实现模块</li>
+<li>hello-spring-boot-starter：引入hello-autoconfigure 模块</li>
+<li>hello-starter-test：测试模块</li>
+</ul>
+<h3 id="hello-autoconfigure-模块">hello-autoconfigure 模块</h3>
+<p>pom.xml 依赖</p>
+<pre><code class="language-xml">&lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot&lt;/artifactId&gt;
+            &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-autoconfigure&lt;/artifactId&gt;
+            &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-configuration-processor&lt;/artifactId&gt;
+            &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+            &lt;optional&gt;true&lt;/optional&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+
+</code></pre>
+<p>编写配置类，创建一个 HelloProperties 用于保存配置信息</p>
+<pre><code class="language-java">@ConfigurationProperties(prefix = &quot;hello.test&quot;)
+public class HelloProperties {
+
+    private String msg = &quot;hello&quot;;
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
+    }
+}
+</code></pre>
+<p>创建 Service，定义 getMsg 方法用于获取配置信息</p>
+<pre><code class="language-java">public class HelloService {
+
+    private String msg;
+
+    public HelloService(String msg) {
+        this.msg = msg;
+    }
+
+    public String getMsg() {
+        return this.msg;
+    }
+}
+</code></pre>
+<p>创建自动化配置类</p>
+<ul>
+<li>创建一个 AutoConfiguration，引用定义好的配置信息</li>
+<li>在 AutoConfiguration 中实现 bean 的注入以及配置信息的读取</li>
+<li>把这个类加入 spring.factories 配置文件中进行声明</li>
+</ul>
+<pre><code class="language-java">@Configuration
+@ConditionalOnClass(HelloService.class)
+@ConditionalOnMissingBean(HelloService.class)
+@EnableConfigurationProperties(HelloProperties.class)
+public class HelloAutoConfiguration {
+
+    @Autowired
+    private HelloProperties helloProperties;
+
+    @Bean
+    @ConditionalOnMissingBean
+    public HelloService helloService() {
+        HelloService helloService = new HelloService(helloProperties.getMsg());
+        return helloService;
+    }
+}
+</code></pre>
+<p>编写 spring.factories，路径是 resources/META-INF</p>
+<pre><code class="language-java">org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  org.example.config.HelloAutoConfiguration
+</code></pre>
+<p>下一步通过运行 <code>mvn install</code> 命令，将这个项目打包 jar 包部署到本地仓库</p>
+<h3 id="hello-spring-boot-starter-模块">hello-spring-boot-starter 模块</h3>
+<p>只保留 pom.xml 文件，引入 hello-autoconfigure 模块</p>
+<pre><code class="language-xml">&lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter&lt;/artifactId&gt;
+            &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.example&lt;/groupId&gt;
+            &lt;artifactId&gt;hello-autoconfigure&lt;/artifactId&gt;
+            &lt;version&gt;${hello.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+</code></pre>
+<h3 id="hello-starter-test">hello-starter-test</h3>
+<p>测试模块，依赖 test-spring-boot-starter</p>
+<p>application.yml 配置文件，不配置将使用默认值，输出 hello：</p>
+<pre><code class="language-shell">test
+	properties: hello again
+</code></pre>
+<p>测试</p>
+<pre><code class="language-java">@SpringBootApplication
+public class HelloStarterTestApplication implements CommandLineRunner {
+
+    @Resource
+    HelloService helloService;
+
+    public static void main(String[] args) {
+        SpringApplication.run(HelloStarterTestApplication.class, args);
+    }
+
+
+    @Override
+    public void run(String... args) throws Exception {
+        System.out.println(this.helloService.getMsg());
+    }
+}
+</code></pre>
+<p>测试成功将输出 hello again。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[在用的常用 Mac 软件]]></title>
+        <id>https://sgaxun.github.io/post/mac-app/</id>
+        <link href="https://sgaxun.github.io/post/mac-app/">
+        </link>
+        <updated>2021-02-28T15:02:45.000Z</updated>
+        <content type="html"><![CDATA[<p><strong>记录一下自己觉得好用的 Mac 软件</strong></p>
+<h2 id="必备">必备</h2>
+<p><a href="https://brew.sh/">Homebrew</a> - 命令式应用商店 👍👍👍</p>
+<h2 id="工作">工作</h2>
+<p><a href="https://dida365.com/">滴答清单</a> - GTD工具</p>
+<p><a href="https://www.jetbrains.com/idea/">IntelliJ IDEA</a> - Java 开发工具</p>
+<p><a href="https://www.jetbrains.com/datagrip/">DataGrip</a> - 数据库工具</p>
+<p><a href="https://www.jetbrains.com/webstorm/">WebStorm</a> - 前端开发工具</p>
+<p><a href="https://www.microsoft.com/zh-cn/microsoft-365">Microsoft 365</a> - 办公全家桶 👍</p>
+<p><a href="https://www.islide.cc/">iSlide</a> - PPT 辅助工具，让 PPT 设计简单起来 💰</p>
+<p><a href="http://www.pdmaas.cn/home">PDmaner</a> - 数据库建模 👍</p>
+<p><a href="https://www.sublimetext.com/">Sublime Text</a> - 文本编辑器 👍</p>
+<p><a href="https://pdfexpert.com/zh">PDF Expert</a> - PDF 工具「最近 Edge 对 PDF 越来越友好」 💰</p>
+<p><a href="https://www.notion.so/product">Notion</a> - 笔记工具 👍 💰</p>
+<p><a href="https://iterm2.com/">iterm2</a> - 终端工具 👍</p>
+<p><a href="https://fig.io/">Fig</a> - 终端命令自动补全工具</p>
+<p><a href="https://termius.com/">Termius</a> - SSH 工具 👍 💰</p>
+<p><a href="https://tabby.sh/">Tabby</a> - SSH 工具</p>
+<p><a href="https://servercat.app/">ServerCat</a> - SSH 工具</p>
+<p><a href="https://codemutex.com/">NextSSH</a> - SSH 工具 💰</p>
+<p><a href="https://www.xmind.cn/">XMind</a> - 脑图工具 💰</p>
+<p><a href="https://github.com/qishibo/AnotherRedisDesktopManager">Another Redis Desktop Manager</a> - Redis 客户端</p>
+<p><a href="https://redis.com/redis-enterprise/redis-insight/">RedisInsight</a> - 官方 Redis 客户端</p>
+<p><a href="https://robomongo.org/">Robo 3T</a> - MongoDB 客户端</p>
+<p><a href="https://www.postman.com/">PostMan</a> - Api 工具</p>
+<p><a href="https://www.apifox.cn/">ApiFox</a> - API 文档、调试、Mock、测试一体化协作平台</p>
+<p><a href="https://www.renfei.org/snippets-lab/">SnippetsLab</a> - 代码片段收集工具 👍 💰</p>
+<p><a href="https://masscode.io/">massCode</a> - 代码片段收集工具 👍</p>
+<p><a href="https://meeting.tencent.com/">腾讯会议</a> - 腾讯会议</p>
+<h2 id="社交">社交</h2>
+<ul>
+<li><a href="https://im.qq.com/">QQ</a> - QQ</li>
+<li><a href="https://weibo.com/n/vvebo">VVebo</a> - 第三方微博客户端</li>
+<li><a href="https://t.me/WeChatExtensionForMac">微信</a> - Mac微信功能拓展/微信插件/微信小助手 👍</li>
+<li><a href="https://arc.net/">Arc</a> - 超好用的浏览器 👍</li>
+<li><a href="https://menubarx.app/">MenuBarX</a> - 放在 menuBar 中的浏览器 👍 💰</li>
+<li><a href="https://mimestream.com/">Mimestream</a> - A native macOS email client for Gmail</li>
+<li><a href="https://sparkmailapp.com/zh">Spark</a> - 邮箱客户端 👍</li>
+<li><a href="https://apps.apple.com/us/app/microsoft-outlook/id985367838?mt=12">Microsoft Outlook</a> - 邮箱客户端</li>
+<li><a href="https://telegram.org/">Telegram</a> - 社交软件「甩出小而美几条街」👍</li>
+<li><a href="https://www.feishu.cn/">飞书</a> - 办公协同</li>
+<li><a href="https://weiboformac.sinaapp.com/">Maipo</a> - 第三方微博工具 👍</li>
+<li><a href="https://apps.apple.com/cn/app/vvebo/id670910957">VVebo</a> - 第三方微博工具</li>
+</ul>
+<h2 id="效率">效率</h2>
+<ul>
+<li><a href="https://elpass.app/">Elpass</a> - 密码管理 👍 💰</li>
+<li><a href="https://hapigo.com/">hapigo</a> - Launcher 高效启动器 💰</li>
+<li><a href="https://www.raycast.com/">Raycast</a> - 高效启动器 👍</li>
+<li><a href="https://www.better365.cn/AutoSwitchInput.html">自动切换输入法</a> - 如题</li>
+<li><a href="https://github.com/leaves615/KeyboardHolder">keyboardHolder</a> - 自动切换输入法</li>
+<li><a href="https://inputsource.pro/zh-CN">input-source-pro</a> - 自动切换输入法 👍</li>
+<li><a href="https://totalspaces.binaryage.com/"><s>TotalSpace</s></a> - 虚拟桌面管理</li>
+<li><a href="https://apphousekitchen.com/">Aldente Pro</a> - 电池管理-优化电池 👍 💰</li>
+<li><a href="https://www.parallels.com.cn/">Parallels Desktop</a> - 虚拟机 👍 💰</li>
+<li><a href="https://multipass.run/">Multipass</a> - 快速搭建Ubuntu虚拟机 👍</li>
+<li><a href="https://playcover.io/">PlayCover</a> - 在您的苹果硅芯片 Mac 上本地运行 iOS 应用和游戏。👍</li>
+<li><a href="https://unclutterapp.com/">Unclutter</a> - 随手记</li>
+<li><a href="https://anydrop.io/">AnyDrop</a> - MenuBar 的工具合集 💰</li>
+<li><a href="https://fireball.studio/oneswitch">One Switch</a> - MeunBar开关合集 👍 💰</li>
+<li><a href="https://github.com/ripperhe/Bob">Bob</a> - 翻译工具 👍 💰</li>
+<li><a href="https://www.snipaste.com/">Snipaste</a> - 截图工具</li>
+<li><a href="https://cleanshot.com/">cleanshot X</a> - 截图工具 💰</li>
+<li><a href="https://www.better365.cn/ishot.html">iShot</a> - 截图工具 👍</li>
+<li><a href="https://lemon.qq.com/">Tencent Lemon</a> - 腾讯柠檬清理 👍</li>
+<li><a href="https://ezip.awehunt.com/?locale=zh-CN">MacZip</a> - 解压缩 👍</li>
+<li><a href="https://pock.app/"><s>Pock</s></a> - TouchBar个性工具</li>
+<li><a href="https://pastenow.app/">PasteNow</a> - 剪贴板历史管理 👍 💰</li>
+<li><a href="https://www.macbartender.com/">Bartender</a> - MenuBar图标管理 👍 💰</li>
+<li><a href="https://ppduck.com/">PP 鸭</a> - 图片压缩</li>
+<li><a href="https://nssurge.com/">Surge</a> - 高级网络工具箱 👍 💰</li>
+<li><a href="https://github.com/Semporia/ClashX-Pro">ClashX Pro</a> - 科学上网</li>
+<li><a href="https://apps.apple.com/cn/app/%E5%B0%8F%E5%8E%86-%E5%B0%8F%E8%80%8C%E7%BE%8E%E7%9A%84%E6%97%A5%E5%8E%86/id1114272557?mt=12">小历</a> - 好看的日历工具 💰</li>
+<li><a href="https://apps.apple.com/us/app/color-folder-master/id1450345160?mt=12">ColorFolder</a> - 修改文件夹颜色</li>
+<li><a href="https://www.macenhance.com/cdock.html">cDock 4</a> - 美化 Dock 栏</li>
+<li><a href="https://hapigo.com/">HapiGo</a> - 高校启动器 💰</li>
+<li><a href="https://alt-tab-macos.netlify.app/">AltTab</a> - Windows「Alt-Tab」窗口切换器 👍</li>
+<li><a href="https://magnet.crowdcafe.com/">Magnet</a> - 组织您的工作区,快速分屏</li>
+<li><a href="https://wins.cool/html/index_zh.html">Wins</a> - 为Mac带来系统级的分屏功能 💰</li>
+<li><a href="https://lusun.com/">芦笋</a> - 极简录屏、一键分享、花样互动 👍</li>
+<li><a href="https://getnoir.app/">Noir</a> - Safari浏览器夜间插件 💰</li>
+<li><a href="https://tracesof.net/uebersicht/">Ubersicht</a> - 桌面美化工具 👍</li>
+<li><a href="https://daisydiskapp.com/">DaisyDisk</a> - 磁盘分析工具 💰</li>
+<li><a href="https://aibotech.cn/">赤友 NTFS 助手</a> - Mac电脑上读写NTFS移动硬盘U盘 💰</li>
+<li><a href="https://www.lgerckens.de/shortery/">Shortery</a> - Mac 的快捷方式自动化</li>
+<li><a href="https://flomoapp.com/">flomo · 浮墨笔记</a> - 持续不断记录，意义自然浮现</li>
+<li><a href="https://pilotmoon.com/popclip/">PopClip</a> - 当您在 Mac 上使用鼠标选择文本时，PopClip 就会出现。 💰</li>
+<li><a href="https://apps.apple.com/app/opencat/id6445999201?mt=12">OpenCat</a> - 第三方 ChatGPT,需自己有 API KEY</li>
+<li><a href="https://fliqlo.com/">fliqlo</a> - 时钟屏保 👍</li>
+</ul>
+<h2 id="娱乐">娱乐</h2>
+<ul>
+<li><a href="https://www.spotify.com/hk-zh/">Spotify</a> - 听歌 👍</li>
+<li><a href="https://sspai.com/post/36884">LyricsX</a> - mac 上的歌词全能工具</li>
+<li><a href="https://github.com/qier222/YesPlayMusic">YesPlayMusic</a> - 高颜值的第三方网易云播放器</li>
+<li><a href="https://www.pocketcasts.com/">Pocket Casts</a> - 听播客 💰</li>
+<li><a href="https://software.charliemonroe.net/downie/">Dowine</a> - 下载 Youtube 视频 👍 💰</li>
+<li><a href="https://github.com/liupan1890/aliyunpan"><s>阿里云盘小白羊</s></a> - 第三方阿里云盘</li>
+<li><a href="https://www.bilibili.com/">bilibili-official</a> - 哔哩哔哩官方客户端</li>
+<li><a href="https://www.dbklabs.com/clicker-for-youtube/">Clicker for Youtube</a> - 第三方 Youtube 👍 💰</li>
+<li><a href="https://www.dbklabs.com/clicker-for-netflix/">Clicker for Netflix</a> - 第三方 Netflix 💰</li>
+<li><a href="https://www.dbklabs.com/clicker-for-disney+/">Clicker for Disney+</a> - 第三方迪士尼流媒体 💰</li>
+<li><a href="https://www.dbklabs.com/clicker-for-prime-video/">Clicker for Prime Video</a> - 第三方亚马逊流媒体 💰</li>
+<li><a href="https://apps.apple.com/us/app/amazon-prime-video/id545519333">Prime Video</a> - 官方</li>
+<li><a href="https://iina.io/">Iina</a> - 本地超强媒体播放器 👍</li>
+<li><a href="https://firecore.com/infuse">Infuse</a> - 强大的播放器 👍</li>
+<li><a href="https://netnewswire.com/">NetNewsWire</a> - RSS 阅读器 👍</li>
+<li><a href="https://mac.xunlei.com/">迅雷</a> - 下载工具</li>
+<li><a href="https://www.microsoft.com/en-us/microsoft-365/onedrive/online-cloud-storage">OneDrive</a> - 网盘</li>
+<li><a href="https://pan.quark.cn/">夸克网盘</a> - 夸克网盘</li>
+</ul>
+<h2 id="工具">工具</h2>
+<ul>
+<li><a href="https://github.com/tw93/Pake">Pake</a> - 很简单的用 Rust 打包网页生成很小的桌面App 👍</li>
+<li><a href="https://www.smartisan.com/apps/#/handshaker">HandShaker</a> - Mac 管理 Android 设备 👍</li>
+<li><a href="https://macpaw.com/cleanmymac">CleanMyMac X</a> - 清理工具</li>
+<li><a href="https://apps.apple.com/us/app/microsoft-remote-desktop/id1295203466?mt=12">Microsoft Remote Desktop</a> - 微软官方远程工具 👍</li>
+<li><a href="https://www.zerotier.com/">ZeroTier</a> - 内网穿透 👍</li>
+<li><a href="https://www.todesk.com/">ToDesk</a> - 远程工具 👍</li>
+<li><a href="https://er.run/">虫洞</a> - 控制手机 💰</li>
+<li><a href="https://tclementdev.com/timemachineeditor/">TimeMachineEditor</a> - 定时备份工具</li>
+<li><a href="https://karabiner-elements.pqrs.org/">Karabiner-elements</a> - 修改键盘映射 👍</li>
+<li><a href="https://imazing.com/zh">iMazing</a> - iphone 备份管理 👍 💰</li>
+<li><a href="https://qspace.awehunt.com/zh-cn/index.html">QSpace</a> - Finder 替代工具 👍 💰</li>
+<li><a href="https://v2.airbuddy.app/">AirBuddy</a> - Airpods及蓝牙设备管理 👍 💰</li>
+<li><a href="https://www.better365.cn/bab2.html">BetterAndBetter</a> - 键盘鼠标增强工具 👍</li>
+<li><a href="https://gridea.dev/">Gridea</a> - 一个静态博客写作客户端 👍</li>
+<li><a href="https://picgo.github.io/PicGo-Doc/">PicGo</a> - 图床工具</li>
+<li><a href="https://typora.io/">Typora</a> - Markdown 编辑器 👍 💰</li>
+<li><a href="https://zh.mweb.im/">Mweb</a> - Markdown 编辑器 💰</li>
+<li><a href="https://www.logitech.com.cn/zh-cn/product/options">Logi Option</a> - 罗技设备管理</li>
+<li><a href="https://github.com/MonitorControl/MonitorControl">MonitorControl</a> -外接显示器亮度控制 👍</li>
+<li><a href="https://github.com/ts1/BLEUnlock">BLEUnlock</a> - 蓝牙自动锁屏解锁 👍</li>
+<li><a href="https://max.codes/latest/">Latest</a> - 软件更新检查器 👍</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Spring Boot 集成 WebSocket]]></title>
+        <id>https://sgaxun.github.io/post/spring-boot-websocket/</id>
+        <link href="https://sgaxun.github.io/post/spring-boot-websocket/">
+        </link>
+        <updated>2020-12-20T15:35:50.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="websocket">WebSocket</h2>
+<p>WebSocket 协议是基于 TCP 的一种新的网络协议，最大特点就是，服务器可以主动向客户端推送信息，客户端也可以主动向服务器发送信息，是真正的双向平等对话，属于服务器推送技术的一种。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/bg2017051502.png" alt="img" loading="lazy"></figure>
+<h2 id="spring-boot-整合">Spring Boot 整合</h2>
+<h3 id="添加依赖">添加依赖</h3>
+<p>Maven 依赖</p>
+<pre><code class="language-xml">&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-websocket&lt;/artifactId&gt;
+&lt;/dependency&gt;
+</code></pre>
+<h3 id="启用-spring-boot-对-websocket-的支持">启用 Spring Boot 对 WebSocket 的支持</h3>
+<p>配置类</p>
+<pre><code class="language-java">@Configuration
+public class WebSocketConfig {
+    @Bean
+    public ServerEndpointExporter serverEndpointExporter() {
+        return new ServerEndpointExporter();
+    }
+}
+</code></pre>
+<h3 id="核心配置websocketserver">核心配置：WebSocketServer</h3>
+<p>因为WebSocket是类似客户端服务端的形式(采用ws协议)，那么这里的WebSocketServer其实就相当于一个ws协议的Controller</p>
+<ul>
+<li>@ ServerEndpoint 注解是一个类层次的注解，它的功能主要是将目前的类定义成一个websocket服务器端, 注解的值将被用于监听用户连接的终端访问URL地址,客户端可以通过这个URL来连接到WebSocket服务器端</li>
+<li>新建一个ConcurrentHashMap webSocketMap 用于接收当前userId的WebSocket，方便传递之间对userId进行推送消息。</li>
+</ul>
+<pre><code class="language-java">@Component
+@Slf4j
+@Service
+@ServerEndpoint(&quot;/api/websocket/{sid}&quot;)
+public class WebSocketServer {
+    //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
+    private static int onlineCount = 0;
+    //concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
+    private static CopyOnWriteArraySet&lt;WebSocketServer&gt; webSocketSet = new CopyOnWriteArraySet&lt;WebSocketServer&gt;();
+
+    //与某个客户端的连接会话，需要通过它来给客户端发送数据
+    private Session session;
+
+    //接收sid
+    private String sid = &quot;&quot;;
+
+    /**
+     * 连接建立成功调用的方法
+     */
+    @OnOpen
+    public void onOpen(Session session, @PathParam(&quot;sid&quot;) String sid) {
+        this.session = session;
+        webSocketSet.add(this);     //加入set中
+        this.sid = sid;
+        addOnlineCount();           //在线数加1
+        try {
+            sendMessage(&quot;conn_success&quot;);
+            log.info(&quot;有新窗口开始监听:&quot; + sid + &quot;,当前在线人数为:&quot; + getOnlineCount());
+        } catch (IOException e) {
+            log.error(&quot;websocket IO Exception&quot;);
+        }
+    }
+
+    /**
+     * 连接关闭调用的方法
+     */
+    @OnClose
+    public void onClose() {
+        webSocketSet.remove(this);  //从set中删除
+        subOnlineCount();           //在线数减1
+        //断开连接情况下，更新主板占用情况为释放
+        log.info(&quot;释放的sid为：&quot;+sid);
+        //这里写你 释放的时候，要处理的业务
+        log.info(&quot;有一连接关闭！当前在线人数为&quot; + getOnlineCount());
+
+    }
+
+    /**
+     * 收到客户端消息后调用的方法
+     * @ Param message 客户端发送过来的消息
+     */
+    @OnMessage
+    public void onMessage(String message, Session session) {
+        log.info(&quot;收到来自窗口&quot; + sid + &quot;的信息:&quot; + message);
+        //群发消息
+        for (WebSocketServer item : webSocketSet) {
+            try {
+                item.sendMessage(message);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * @ Param session
+     * @ Param error
+     */
+    @OnError
+    public void onError(Session session, Throwable error) {
+        log.error(&quot;发生错误&quot;);
+        error.printStackTrace();
+    }
+
+    /**
+     * 实现服务器主动推送
+     */
+    public void sendMessage(String message) throws IOException {
+        this.session.getBasicRemote().sendText(message);
+    }
+
+    /**
+     * 群发自定义消息
+     */
+    public static void sendInfo(String message, @PathParam(&quot;sid&quot;) String sid) throws IOException {
+        log.info(&quot;推送消息到窗口&quot; + sid + &quot;，推送内容:&quot; + message);
+
+        for (WebSocketServer item : webSocketSet) {
+            try {
+                //这里可以设定只推送给这个sid的，为null则全部推送
+                if (sid == null) {
+//                    item.sendMessage(message);
+                } else if (item.sid.equals(sid)) {
+                    item.sendMessage(message);
+                }
+            } catch (IOException e) {
+                continue;
+            }
+        }
+    }
+
+    public static synchronized int getOnlineCount() {
+        return onlineCount;
+    }
+
+    public static synchronized void addOnlineCount() {
+        WebSocketServer.onlineCount++;
+    }
+
+    public static synchronized void subOnlineCount() {
+        WebSocketServer.onlineCount--;
+    }
+
+    public static CopyOnWriteArraySet&lt;WebSocketServer&gt; getWebSocketSet() {
+        return webSocketSet;
+    }
+}
+</code></pre>
+<h3 id="测试-controller">测试 Controller</h3>
+<pre><code class="language-java">@Controller(&quot;web_Scoket_system&quot;)
+@RequestMapping(&quot;/api/socket&quot;)
+public class SystemController {
+    //页面请求
+    @GetMapping(&quot;/index/{userId}&quot;)
+    public ModelAndView socket(@PathVariable String userId) {
+        ModelAndView mav = new ModelAndView(&quot;/socket1&quot;);
+        mav.addObject(&quot;userId&quot;, userId);
+        return mav;
+    }
+
+    //推送数据接口
+    @ResponseBody
+    @RequestMapping(&quot;/socket/push/{cid}&quot;)
+    public Map pushToWeb(@PathVariable String cid, String message) {
+        Map&lt;String,Object&gt; result = new HashMap&lt;&gt;();
+        try {
+            WebSocketServer.sendInfo(message, cid);
+            result.put(&quot;code&quot;, cid);
+            result.put(&quot;msg&quot;, message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+}
+</code></pre>
+<h3 id="测试页面-indexhtml">测试页面 index.html</h3>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+
+ &lt;head&gt;
+  &lt;meta charset=&quot;utf-8&quot;&gt;
+  &lt;title&gt;Java后端WebSocket的Tomcat实现&lt;/title&gt;
+  &lt;script type=&quot;text/javascript&quot; src=&quot;js/jquery.min.js&quot;&gt;&lt;/script&gt;
+ &lt;/head&gt;
+
+ &lt;body&gt;
+  &lt;div id=&quot;main&quot; style=&quot;width: 1200px;height:800px;&quot;&gt;&lt;/div&gt;
+  Welcome&lt;br/&gt;&lt;input id=&quot;text&quot; type=&quot;text&quot; /&gt;
+  &lt;button onclick=&quot;send()&quot;&gt;发送消息&lt;/button&gt;
+  &lt;hr/&gt;
+  &lt;button onclick=&quot;closeWebSocket()&quot;&gt;关闭WebSocket连接&lt;/button&gt;
+  &lt;hr/&gt;
+  &lt;div id=&quot;message&quot;&gt;&lt;/div&gt;
+ &lt;/body&gt;
+ &lt;script type=&quot;text/javascript&quot;&gt;
+  var websocket = null;
+  //判断当前浏览器是否支持WebSocket
+  if('WebSocket' in window) {
+   //改成你的地址
+   websocket = new WebSocket(&quot;ws://192.168.100.196:8082/api/websocket/100&quot;);
+  } else {
+   alert('当前浏览器 Not support websocket')
+  }
+
+  //连接发生错误的回调方法
+  websocket.onerror = function() {
+   setMessageInnerHTML(&quot;WebSocket连接发生错误&quot;);
+  };
+
+  //连接成功建立的回调方法
+  websocket.onopen = function() {
+   setMessageInnerHTML(&quot;WebSocket连接成功&quot;);
+  }
+  var U01data, Uidata, Usdata
+  //接收到消息的回调方法
+  websocket.onmessage = function(event) {
+   console.log(event);
+   setMessageInnerHTML(event);
+   setechart()
+  }
+
+  //连接关闭的回调方法
+  websocket.onclose = function() {
+   setMessageInnerHTML(&quot;WebSocket连接关闭&quot;);
+  }
+
+  //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+  window.onbeforeunload = function() {
+   closeWebSocket();
+  }
+
+  //将消息显示在网页上
+  function setMessageInnerHTML(innerHTML) {
+   document.getElementById('message').innerHTML += innerHTML + '&lt;br/&gt;';
+  }
+
+  //关闭WebSocket连接
+  function closeWebSocket() {
+   websocket.close();
+  }
+
+  //发送消息
+  function send() {
+   var message = document.getElementById('text').value;
+   websocket.send('{&quot;msg&quot;:&quot;' + message + '&quot;}');
+   setMessageInnerHTML(message + &quot;&amp;#13;&quot;);
+  }
+ &lt;/script&gt;
+
+&lt;/html&gt;
+</code></pre>
+<h3 id="结果展示">结果展示</h3>
+<p>后台输出</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211226214558708.png" alt="image-20211226214558708" loading="lazy"></figure>
+<p>前台显示</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640.png" alt="图片" loading="lazy"></figure>
+<h3 id="问题">问题</h3>
+<p>由于 WebSocket 启动时优先于 Spring 容器，从而导致在 WebSocketServer 中调用业务会空指针异常，所以需要在 WebSocketServer 中将用到的 service 给静态初始化</p>
+<pre><code class="language-java">public static ITestService testService;
+</code></pre>
+<p>WebSocketConfig 中增加以下内容</p>
+<pre><code class="language-java">@Autowired
+private void setTestService(ITestService testService){
+	Websocketserver.testService = testService:
+}
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Spring Boot 启动流程]]></title>
+        <id>https://sgaxun.github.io/post/spring-boot-start-process/</id>
+        <link href="https://sgaxun.github.io/post/spring-boot-start-process/">
+        </link>
+        <updated>2020-10-21T16:00:00.000Z</updated>
+        <content type="html"><![CDATA[<p>Spring Boot 的启动很简单，代码如下：</p>
+<pre><code class="language-java">@SpringBootApplication
+public class Application implements CommandLineRunner {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+ }
+</code></pre>
+<p>启动类上标注 @SpringBootApplication 注解，然后在 main 函数中调用 <code>SpringApplication.run(Application.class, args);</code>,这样就完成了 Spring Boot 的启动流程，写法非常简单。</p>
+<h2 id="springbootapplication">@SpringBootApplication</h2>
+<p>首先查看启动类上的注解 @SpringBootApplication 源码：</p>
+<pre><code class="language-java">@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@SpringBootConfiguration
+@EnableAutoConfiguration
+@ComponentScan(excludeFilters = {
+  @Filter(type = FilterType.CUSTOM,classes = {TypeExcludeFilter.class}), 
+  @Filter(type = FilterType.CUSTOM,classes = {AutoConfigurationExcludeFilter.class}
+)}
+)
+public @interface SpringBootApplication {
+    @AliasFor(
+        annotation = EnableAutoConfiguration.class
+    )
+    Class&lt;?&gt;[] exclude() default {};
+
+    @AliasFor(
+        annotation = EnableAutoConfiguration.class
+    )
+    String[] excludeName() default {};
+
+    @AliasFor(
+        annotation = ComponentScan.class,
+        attribute = &quot;basePackages&quot;
+    )
+    String[] scanBasePackages() default {};
+
+    @AliasFor(
+        annotation = ComponentScan.class,
+        attribute = &quot;basePackageClasses&quot;
+    )
+    Class&lt;?&gt;[] scanBasePackageClasses() default {};
+
+    @AliasFor(
+        annotation = ComponentScan.class,
+        attribute = &quot;nameGenerator&quot;
+    )
+    Class&lt;? extends BeanNameGenerator&gt; nameGenerator() default BeanNameGenerator.class;
+
+    @AliasFor(
+        annotation = Configuration.class
+    )
+    boolean proxyBeanMethods() default true;
+}
+</code></pre>
+<p>查看源码可以看出来 @SpringBootApplication 是一个组合注解，主要由 @SpringBootConfiguration，@EnableAutoConfiguration 和 @EnableAutoConfiguration 这三个注解组成。</p>
+<p>@SpringBootApplication 主要作为一个配置类，能够出发包扫描和自动配置的逻辑，从而使 Spring Boot 相关的 bean 被注册进 Spring 容器。</p>
+<h2 id="启动流程">启动流程</h2>
+<p>main 方法中仅有一行代码，<code>SpringApplication.run(Application.class, args);</code>进入 run 方法查看源码。</p>
+<pre><code class="language-java">public static ConfigurableApplicationContext run(Class&lt;?&gt; primarySource, String... args) {
+        return run(new Class[]{primarySource}, args);
+    }
+</code></pre>
+<p>上边的 run 方法中又调用了另一个静态 run 方法：</p>
+<pre><code class="language-java">public static ConfigurableApplicationContext run(Class&lt;?&gt;[] primarySources, String[] args) {
+        return (new SpringApplication(primarySources)).run(args);
+    }
+</code></pre>
+<p>上边的 run 方法中构建了一个 SpringApplication 对象，然后调用其 run 方法来启动 Spring Boot 项目，查看 SpringApplication 对象的run 方法源码：</p>
+<pre><code class="language-java">public ConfigurableApplicationContext run(String... args) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        ConfigurableApplicationContext context = null;
+        Collection&lt;SpringBootExceptionReporter&gt; exceptionReporters = new ArrayList();
+        this.configureHeadlessProperty();
+        SpringApplicationRunListeners listeners = this.getRunListeners(args);
+        listeners.starting();
+
+        Collection exceptionReporters;
+        try {
+            ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+            ConfigurableEnvironment environment = this.prepareEnvironment(listeners, applicationArguments);
+            this.configureIgnoreBeanInfo(environment);
+            Banner printedBanner = this.printBanner(environment);
+            context = this.createApplicationContext();
+            exceptionReporters = this.getSpringFactoriesInstances(SpringBootExceptionReporter.class, new Class[]{ConfigurableApplicationContext.class}, context);
+            this.prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+            this.refreshContext(context);
+            this.afterRefresh(context, applicationArguments);
+            stopWatch.stop();
+            if (this.logStartupInfo) {
+                (new StartupInfoLogger(this.mainApplicationClass)).logStarted(this.getApplicationLog(), stopWatch);
+            }
+
+            listeners.started(context);
+            this.callRunners(context, applicationArguments);
+        } catch (Throwable var10) {
+            this.handleRunFailure(context, var10, exceptionReporters, listeners);
+            throw new IllegalStateException(var10);
+        }
+
+        try {
+            listeners.running(context);
+            return context;
+        } catch (Throwable var9) {
+            this.handleRunFailure(context, var9, exceptionReporters, (SpringApplicationRunListeners)null);
+            throw new IllegalStateException(var9);
+        }
+    }
+</code></pre>
+<h3 id="启动步骤">启动步骤</h3>
+<ol>
+<li>
+<p>从<code>spring.factories</code>配置文件中<strong>加载</strong><code>**EventPublishingRunListener**</code><strong>对象</strong>，该对象拥有<code>SimpleApplicationEventMulticaster</code>属性，即在SpringBoot启动过程的不同阶段用来发射内置的生命周期事件</p>
+</li>
+<li>
+<p><strong>准备环境变量</strong>，包括系统变量，环境变量，命令行参数，默认变量，<code>servlet</code>相关配置变量，随机值以及配置文件（比如<code>application.properties</code>）等。</p>
+</li>
+<li>
+<p>控制台**打印SpringBoot的<code>bannner</code>标志。</p>
+</li>
+<li>
+<p><strong>根据不同类型环境创建不同类型的<code>applicationcontext</code>容器</strong>，因为这里是<code>servlet</code>环境，所以创建的是<code>AnnotationConfigServletWebServerApplicationContext</code>容器对象。</p>
+</li>
+<li>
+<p>从<code>spring.factories</code>配置文件中<strong>加载</strong><code>**FailureAnalyzers**</code><strong>对象</strong>,用来报告SpringBoot启动过程中的异常。</p>
+</li>
+<li>
+<p><strong>为刚创建的容器对象做一些初始化工作</strong>，准备一些容器属性值等，对<code>ApplicationContext</code>应用一些相关的后置处理和调用各个<code>ApplicationContextInitializer</code>的初始化方法来执行一些初始化逻辑等。</p>
+</li>
+<li>
+<p><strong>刷新容器</strong>，这一步至关重要。比如调用<code>bean factory</code>的后置处理器，注册<code>BeanPostProcessor</code>后置处理器，初始化事件广播器且广播事件，初始化剩下的单例<code>bean</code>和SpringBoot创建内嵌的<code>Tomcat</code>服务器等等重要且复杂的逻辑都在这里实现，主要步骤可见代码的注释，关于这里的逻辑会在以后的spring源码分析专题详细分析。</p>
+</li>
+<li>
+<p><strong>执行刷新容器后的后置处理逻辑</strong>，注意这里为空方法。</p>
+</li>
+<li>
+<p><strong>调用<code>ApplicationRunner</code>和<code>CommandLineRunner</code>的run方法</strong>，我们实现这两个接口可以在spring容器启动后需要的一些东西比如加载一些业务数据等。</p>
+</li>
+<li>
+<p><strong>报告启动异常</strong>，即若启动过程中抛出异常，此时用<code>FailureAnalyzers</code>来报告异常。</p>
+</li>
+<li>
+<p>最终<strong>返回容器对象</strong>，这里调用方法没有声明对象来接收。</p>
+<p>当然在SpringBoot启动过程中，每个不同的启动阶段会分别发射不同的内置生命周期事件，比如在准备<code>environment</code>前会发射<code>ApplicationStartingEvent</code>事件，在<code>environment</code>准备好后会发射<code>ApplicationEnvironmentPreparedEvent</code>事件，在刷新容器前会发射<code>ApplicationPreparedEvent</code>事件等，总之SpringBoot总共内置了7个生命周期事件，除了标志SpringBoot的不同启动阶段外，同时一些监听器也会监听相应的生命周期事件从而执行一些启动初始化逻辑。</p>
+</li>
+</ol>
+<p>梳理过后能够简单的对 Spring Boot 有一个整体的认识。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[JVM 原理探究之二]]></title>
+        <id>https://sgaxun.github.io/post/jvm-deepin-2/</id>
+        <link href="https://sgaxun.github.io/post/jvm-deepin-2/">
+        </link>
+        <updated>2020-09-18T15:50:10.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="内存分配">内存分配</h2>
+<h3 id="jvm-的简化架构">JVM 的简化架构</h3>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/20220112162308.png" style="zoom:50%;" />
+<h4 id="运行时数据区">运行时数据区</h4>
+<p>包括：PC 寄存器、Java 虚拟机栈、Java 堆、方法区、运行时常量池、本地方法栈等。</p>
+<ul>
+<li>PC(Program Counter)寄存器说明：</li>
+</ul>
+<ol>
+<li>每个线程拥有一个 PC 寄存器，是线程私有的，用来存储指向下一条指令的地址。</li>
+<li>在创建线程的时候，创建相应的 PC 寄存器。</li>
+<li>执行本地方法时，PC 寄存器的值为 undefined。</li>
+<li>是一块较小的内存空间，是唯一一个在 JVM 规范中没有规定 OutOfMemoryError 的内存区域。</li>
+</ol>
+<ul>
+<li>Java 虚拟机栈</li>
+</ul>
+<p>栈由一系列帧（Frame）组成（因此 Java 栈也叫做帧栈），是线程私有的。</p>
+<p>帧用来保存一个方法的局部变量、操作数栈（Java 没有寄存器，所有参数传递使用操作数栈）、常量池指针、动态链接、方法返回值等。</p>
+<p>每次方法调用创建一个帧，并压栈，退出方法的时候，修改栈顶指针就可以把栈帧中的内容销毁。</p>
+<p>局部变量表存放了编译期可知的各种基本类型和引用类型，每个 slot 存放 32 位的数据，long、double 占两个槽位。</p>
+<p>栈的优点：存取速度比堆快，仅次于寄存器。</p>
+<p>栈的缺点：存在栈中的数据大小、生存期是在编译期决定的，缺乏灵活性。</p>
+<ul>
+<li>Java 堆</li>
+</ul>
+<p>用来存放应用系统创建的对象和数组，所有线程共享 Java 堆。</p>
+<p>GC 主要就管理堆空间，对分代 GC 来说，堆也是分代的。</p>
+<p>堆的优点：运行期动态分配内存大小，自行进行垃圾回收：</p>
+<p>堆的缺点：效率相对较慢。</p>
+<ul>
+<li>方法区</li>
+</ul>
+<p>方法区是线程共享的，通常用来保存装载的类的结构信息。</p>
+<p>通常方法区是和元空间关联在一起，但具体的跟 JVM 实现和版本有关。</p>
+<p>JVM 规范把方法区描述为堆的一个逻辑部分，但它有一个别称为 Non-heap（非堆），应是为了与 Java 堆区分开。</p>
+<ul>
+<li>运行时常量池</li>
+</ul>
+<p>是 Class 文件中每个类或者接口的常量池表，在运行期间的表示形式，通常包括：类的版本、字段、方法、接口等信息。</p>
+<p>在方法区中分配。</p>
+<p>通常在加载类和接口到 JVM 后，就创建相应的运行时常量池</p>
+<ul>
+<li>本地方法栈</li>
+</ul>
+<p>在 JVM 中用来支持 native 方法执行的栈就是本地方法栈。</p>
+<h3 id="栈-堆-方法区之间的交互关系">栈、堆、方法区之间的交互关系</h3>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220112211911109.png" alt="image-20220112211911109" loading="lazy"></figure>
+<h2 id="java-堆内存">Java 堆内存</h2>
+<h3 id="堆的结构-对象的内存布局">堆的结构、对象的内存布局</h3>
+<h4 id="概述">概述</h4>
+<ul>
+<li>
+<p>Java 堆用来存放应用系统创建的对象和数组，所有线程共享 Java 堆。</p>
+</li>
+<li>
+<p>Java 堆是在运行期动态分配内存大小，并且自动进行垃圾回收。</p>
+</li>
+<li>
+<p>Java 垃圾回收；（GC）主要就是回收堆内存，对分代 GC 来说，堆也是分代的。</p>
+</li>
+</ul>
+<h4 id="java-堆的结构">Java 堆的结构</h4>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220112212840118.png" alt="image-20220112212840118" loading="lazy"></figure>
+<ul>
+<li>新生代用来存放新分配的对象;新生代中经过垃圾回收，没有回收掉的对象，被复制到老年代</li>
+<li>老年代存储对象比新生代存储对象的年龄大的多</li>
+<li>老年代存储一些大的对象</li>
+<li>整个堆的大小 = 新生代 + 老年代</li>
+<li>新生代 = Eden + 存活区(From + To)</li>
+<li>从前的持久代，用来存放 Class、Method 等元素的区域，从 JDK8 开始去掉了，取而代之的是元空间（MetaSpace），元空间并不在虚拟机里面，而是直接使用本地内存</li>
+</ul>
+<h4 id="对象的内存布局">对象的内存布局</h4>
+<p>对象在内存中存储的布局（这里以 HotSpot 虚拟机为例来说明），分为：对象头、实例数据和对齐填充</p>
+<ul>
+<li>对象头，包含两部分：</li>
+</ul>
+<ol>
+<li>Mark Word：存储对象自身的运行数据，如 HashCode、GC分代年龄、锁状态标志等</li>
+<li>类型指针：对象指向它的类元数据的指针</li>
+</ol>
+<ul>
+<li>实例数据</li>
+</ul>
+<p>真正存放对象实例数据的地方</p>
+<ul>
+<li>对齐填充</li>
+</ul>
+<p>这部分不一定存在，也没有什么特别含义，仅仅是占位符。因为 HotSpot 要求对象起始地址都是 8 字节的整数倍，如果不是，就对齐</p>
+<h3 id="对象的访问定位">对象的访问定位</h3>
+<p>在 JVM 规范中只规定了 reference 类型是一个指向对象的引用，但没有规定这个引用如何去定位、访问堆中对象的具体位置</p>
+<p>因此对象的访问方式取决于 JVM 的实现，目前主流的有：使用句柄或使用指针两种方式</p>
+<h4 id="使用句柄">使用句柄</h4>
+<p>Java 堆中会划分出一块内存来做句柄池，reference 中存储句柄的地址，句柄中存储对象的实例数据和类元数据的地址，如下图：</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220112214935654.png" alt="image-20220112214935654" loading="lazy"></figure>
+<h4 id="使用指针">使用指针</h4>
+<p>Java 堆中会存放访问类元数据的地址，reference 存储的就直接是对象的地址，如下图：</p>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/Snipaste_2022-01-12_21-54-53.png" alt="Snipaste_2022-01-12_21-54-53" loading="lazy"></figure>
+<h3 id="java-内存分配参数">Java 内存分配参数</h3>
+<h4 id="trace-跟踪参数">Trace 跟踪参数</h4>
+<p>可以打印 GC 的简要信息： -Xlog:gc</p>
+<p>打印 GC 的信息信息：-Xlog:gc*</p>
+<p>指定 GC log 的位置，以文件输出：-Xlog:gc:garbage-collection.log</p>
+<p>每一次 GC 后，都打印堆信息：-Xlog:gc+heap=debug</p>
+<h4 id="gc-日志格式">GC 日志格式</h4>
+<ul>
+<li>GC 发生的时间，也就是 JVM 启动以为经过的秒数</li>
+<li>日志级别信息，和日志类型标记</li>
+<li>GC 识别号</li>
+<li>GC 类型和说明 GC 的原因</li>
+<li>容量：GC 前容量-&gt;GC 后容量(该区域总容量)</li>
+<li>GC持续时间，单位秒。有的收集器会有更详细的描述，比如：user 表示应用程序消耗的时间，sys 表示系统内核消耗的时间，real 表示操作从开始到结束的时间</li>
+</ul>
+<h4 id="java-堆的参数">Java 堆的参数</h4>
+<ul>
+<li>-Xms：初始堆大小，默认物理内存的 1/64，必须是 1024 的倍数并且大于 1MB</li>
+<li>-Xmx：最大堆大小，默认是物理内存的 1/4，必须是 1024 的倍数且大于 2MB</li>
+<li>-Xmn：新生代大小，默认是整个堆的 3/8</li>
+<li>-XX:NewRatio：老年代与新生代的比例关系。「如果 xms=xmx，且设置了 xmn 的情况下，该参数不用设置」</li>
+<li>-XX:SurvivorRatio：Eden 区和 Survivor 区的大小比值，设置为 8，则两个 Survivor 区与一个 Eden 区的比值为 2:8，一个 Survivor 占整个新生代的 1/10</li>
+<li>-XX:+HeapDumpOnOutOfMemoryError：OOM 时导出堆到文件</li>
+<li>-XX:+HeapDumpPath：导出 OOM 的路径</li>
+<li>-XX:OnOutOfMemoryError：在 OOM 时，执行一个脚本</li>
+</ul>
+<h4 id="java-栈的参数">Java 栈的参数</h4>
+<p>-Xss：通常只有几百 K，决定了函数调用的深度</p>
+<h4 id="元空间的参数">元空间的参数</h4>
+<ul>
+<li>-XX:MetaspaceSize：初始空间大小</li>
+<li>-XX:MaxMetaspaceSize: 最大空间，默认是没有限制的</li>
+<li>-XX:MinMetaspaceFreeRatio：在 GC 之后，最小的 Metaspace 剩余空间容量百分比</li>
+<li>-XX:MaxMetaspaceFreeRatio：在 GC 之后，最大的 Metaspace 剩余空间容量百分比</li>
+</ul>
+<h2 id="字节码执行引擎">字节码执行引擎</h2>
+<h3 id="概述-2">概述</h3>
+<p>JVM 的字节码执行引擎，功能基本就是输入字节码文件，然后对字节码进行解析并处理，最后输出执行结果</p>
+<p>实现方式同能有通过解释器直接解释执行字节码，或者是通过即时编译器产生本地代码，也就是编译执行，当然也可能两者皆有</p>
+<h3 id="栈帧-运行期操作数栈和局部变量表之间的交互关系">栈帧、运行期操作数栈和局部变量表之间的交互关系</h3>
+<h4 id="栈帧概述">栈帧概述</h4>
+<p>栈帧是用于支持 JVM 进行方法调用和方法执行的数据结构</p>
+<p>栈帧随着方法调用而创建，随着方法结束而销毁</p>
+<p>栈帧里面存储了方法的局部变量、操作数栈、动态连接、方法返回地址等信息</p>
+<h4 id="栈帧概念结构">栈帧概念结构</h4>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220115000957366.png" alt="image-20220115000957366" style="zoom:50%;" />
+<h4 id="局部变量表">局部变量表</h4>
+<p>用来存放方法参数和方法内部定义的局部变量的存储空间</p>
+<ol>
+<li>以变量槽 slot 为单位，目前一个 slot 存放 32 位以内的数据类型</li>
+<li>对于 64 位的数据占据 2 个 slot</li>
+<li>对于实例方法，第 0 位 slot 存放的是 this，然后从 1 到 n，依次分配给参数列表</li>
+<li>根据方法体内部定义的变量顺序和作用于来分配 slot</li>
+<li>slot 是复用的，以节省栈帧的空间，这种设计可能会影响到系统的垃圾收集行为</li>
+</ol>
+<h4 id="操作数栈">操作数栈</h4>
+<p>用来存放方法运行期间，各个指令操作的数据</p>
+<ol>
+<li>操作数栈中元素的数据类型必须和字节码指令的顺序严格匹配</li>
+<li>虚拟机在实现栈帧的时候可能会做一些优化，让两个栈帧出现部分重叠区域，以存放共用的数据</li>
+</ol>
+<h4 id="动态连接">动态连接</h4>
+<p>每个栈帧持有一个指向运行时常量池中该栈帧所属方法的引用，以支持方法调用过程的动态连接</p>
+<ol>
+<li>静态解析：类加载的时候，符号引用就转化成直接引用</li>
+<li>动态连接：运行期间转换为直接引用</li>
+</ol>
+<h4 id="方法返回地址">方法返回地址</h4>
+<p>方法执行后返回的地址</p>
+<h3 id="方法调用-静态分派和动态分派">方法调用、静态分派和动态分派</h3>
+<h4 id="方法调用">方法调用</h4>
+<p>方法调用就是确定具体调用那一个方法，并不涉及方法内部的执行过程</p>
+<ol>
+<li>部分方法是直接在类加载的阶段解析就确定了直接引用关系「静态方法、私有方法、实例构造器、父类方法」</li>
+<li>但是对于实例方法，也称虚方法，因为重载和多态，需要运行期动态委派</li>
+</ol>
+<h4 id="静态分派">静态分派</h4>
+<p>指所有依赖静态类型来定位方法执行版本的分派方式，比如重载方法</p>
+<h4 id="动态分派">动态分派</h4>
+<p>根据运行期的实际类型来定位方法执行版本的动态分派方式，比如接口的实现方法和覆盖方法</p>
+<h4 id="单分派和多分派">单分派和多分派</h4>
+<p>就是按照分派思考的纬度，多于一个的就算多分派，只有一个的称为单分派</p>
+<p>如何执行方法中的字节码指令：JVM 通过基于栈的字节码解释执行引擎来执行指令，JVM 的指令集也是基于栈的</p>
+<h2 id="垃圾回收">垃圾回收</h2>
+<h3 id="垃圾回收基础">垃圾回收基础</h3>
+<h4 id="垃圾回收概述">垃圾回收概述</h4>
+<p>什么是垃圾：简单说就是内存中已经不再被使用到的内存空间就是垃圾</p>
+<p>如何判定是否是垃圾：</p>
+<p>引用计数法：给对象添加一个引用计数器，有访问就加 1，引用失效就减 1</p>
+<p>优点：实现简单、效率高;缺点：不能解决对象之间循环引用的问题</p>
+<h4 id="根搜索算法">根搜索算法</h4>
+<p>从跟（GC Roots）节点向下搜索对象节点，搜索走过的路径称为引用链，当一个对象到根之间没有连通的话，则该对象不可用</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220116174454262.png" alt="image-20220116174454262" style="zoom:50%;" />
+<p>可作为 GC Roots 的对象包括：虚拟机栈（栈帧局部变量）中引用的对象、方法区类静态属性引用的对象、方法区中常量引用的对象、本地方法栈中 JNI 引用的对象</p>
+<p>HotSpot 使用了一组叫做 OopMap 的数据结构达到准确式 GC 的目的</p>
+<p>在 OopMap 的协助下，JVM 可以很快的做完 GC Roots 枚举。但是 JVM 并没有为每一条指令生成一个 OopMap</p>
+<p>记录 OopMap 的这些「特定位置」被称为安全点，即当前线程执行到安全点后才允许暂停进行 GC</p>
+<p>如果一段代码中，对象引用关系不会发生变化，这个区域中任何地方开始 GC 都是安全的，那么这个区域称为安全区域</p>
+<h4 id="引用分类">引用分类</h4>
+<ul>
+<li>强引用：类似于 Object a = new A() 这样的，不会被回收</li>
+<li>软引用：还有用但并不必须的对象。用 SoftReference 来实现软引用</li>
+<li>弱引用：非必需对象，比软引用还要弱，垃圾回时会回收掉。用 WeakReference 来实现弱引用</li>
+<li>虚引用：也成为幽灵引用或幻影引用，是最弱的引用。垃圾回收时会回收掉。用 PhantomReference 来实现虚引用</li>
+</ul>
+<h4 id="跨代引用">跨代引用</h4>
+<p>一个代中的对象引用另一个代中的对象</p>
+<p>跨代引用假说：跨代引用相对于同代引用来说只是极少数</p>
+<p>隐含推论：存在互相引用关系的两个对象，是应该倾向于同时生存或者同时消亡的</p>
+<h4 id="记忆集">记忆集</h4>
+<p>记忆集（Remembered Set）：一种用于记录从非收集区域指向收集区域的指针集合的抽象数据结构</p>
+<ul>
+<li>字长精度：每个记录精确到一个机器字长，该字包含跨代指针</li>
+<li>对象精度：每个记录精确到一个对象，该对象里有字段含有跨代指针</li>
+<li>卡精度（主要在用）：每个记录精确到一块内存区域，该区域内有对象含有跨代指针
+<ul>
+<li>卡表（Card Table）：是记忆集的一种具体实现，定义了记忆集的记录精度和堆内存的映射关系等</li>
+<li>卡表的每个元素都对应着其标识的内存区域中一块特定大小的内存块，这个内存块称为卡页（Card Page）</li>
+</ul>
+</li>
+</ul>
+<h4 id="写屏障">写屏障</h4>
+<p>写屏障可以看成是 JVM 对「引用类型字段赋值」这个动作的 AOP</p>
+<p>通过写屏障来实现当对象状态改变后，维护卡表状态</p>
+<h4 id="判断是否垃圾的步骤">判断是否垃圾的步骤</h4>
+<ol>
+<li>根搜索算法判断不可用</li>
+<li>看是否有必要执行 finalize 方法</li>
+<li>1 和 2 步骤走完后对象仍然没有人使用，那就属于垃圾</li>
+</ol>
+<h4 id="gc-类型">GC 类型</h4>
+<ul>
+<li>MinorGC / YoungGC：发生在新生代的收集动作</li>
+<li>MajorGC / OldGc：发生在老年代的 GC，目前只有CMS 收集器会有单独收集老年代的行为</li>
+<li>MixedGC：收集整个新生代以及部分老年代，目前只有 G1 收集器会有这种行为</li>
+<li>FullGC：收集这个 Java 堆和方法区的 GC</li>
+</ul>
+<h4 id="stop-the-world">Stop-The-World</h4>
+<p>STW 是 Java 中一种全局暂停现象，多半由于 GC 引起。所谓全局停顿，就是所有 Java 代码停止运行，native 代码可以执行，但不能和 JVM 交互</p>
+<p>其危险是长时间服务停止，没有响应;对于 HA 系统，可能引起主备切换，严重危害生产环境</p>
+<h4 id="垃圾收集类型">垃圾收集类型</h4>
+<ul>
+<li>
+<p>串行收集：GC 单线程内存回收、会暂停所有的用户线程，如：Serial</p>
+</li>
+<li>
+<p>并行收集：多个 GC 线程并发工作，此时用户线程是暂停的，如：Parallel</p>
+</li>
+<li>
+<p>并发收集：用户线程和 GC 线程同时执行（不一定是并行，可能交替执行），不需要停顿用户线程，如：CMS</p>
+</li>
+</ul>
+<h4 id="判断类无用的条件">判断类无用的条件</h4>
+<ul>
+<li>JVM 中该类的所有实例都已经被回收</li>
+<li>加载该类的 ClassLoader 已经被回收</li>
+<li>没有任何地方引用该类的 Class 对象</li>
+<li>无法在任何地方通过反射访问这个类</li>
+</ul>
+<h3 id="垃圾回收算法">垃圾回收算法</h3>
+<h4 id="标记清除法">标记清除法</h4>
+<p>标记清除法（Mark-Sweep）算法分成标记和清除两个阶段，先标记出要回收的对象，然后统一回收这些对象</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220116232544743.png" alt="image-20220116232544743" style="zoom:25%;" />
+<p>优点是简单</p>
+<p>缺点是：</p>
+<ul>
+<li>效率不高，标记和清除的效率都不高</li>
+<li>标记清除后会产生大量不连续的内存碎片，从而导致在分配大对象时触发 GC</li>
+</ul>
+<h4 id="复制算法">复制算法</h4>
+<p>复制算法（Copying）：把内存分成两块完全相同的区域，每次使用其中一块，当一块使用完了，就把这块上还存活的对象拷贝到另外一块，然后把这块清除掉</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220116233216995.png" alt="image-20220116233216995" style="zoom:25%;" />
+<p>优点是实现简单，运行高效，不用考虑内存碎片的问题</p>
+<p>缺点是内存有些浪费</p>
+<p>JVM 实际实现中，是将内存分为一块较大的 Eden 区和两块较小的 Survivor 空间，每次使用 Eden 和一块 Survivor，回收时，把存活的对象复制到另一块 Survivor</p>
+<p>HotSpot 默认的 Eden 和 Survivor 比例是 8:1，也就是每次能用 90%的新生代空间</p>
+<p>如果 Survivor 空间不够，就要依赖老年代进行分配担保，把放不下的对象直接进入老年代</p>
+<h5 id="分配担保">分配担保</h5>
+<p>分配担保是：当新生代进行垃圾回收后，新生代的存活区放置不下，那么需要把这些对象放置到老年代去的策略，也就是老年代为新生代的 GC 做空间分配担保，步骤如下：</p>
+<ol>
+<li>在发生 MinorGC 前，JVM 会检查老年代的最大可用的连续空间，是否大于新生代所有对象的总空间，如果大于，可以确保 MinorGC 是安全的</li>
+<li>如果小于，那么虚拟机会检查是否设置了允许担保失败，如果允许，则继续检查老年代最大可用的连续空间，是否大于历次晋升到老年代对象的平均大小</li>
+<li>如果大于，则尝试进行一次 MinorGC</li>
+<li>如果小于，则改为做一次 FUllGC</li>
+</ol>
+<h4 id="标记整理法">标记整理法</h4>
+<p>标记整理算法（Mark-Compact）：由于复制算法在存活对象比较多的时候，效率较低，且有空间浪费，因此老年代一般不会选用复制算法，老年代多选用标记整理算法</p>
+<p>标记过程根标记清除法的标记一样，但后续不是直接清除可回收对象，而是让所有存活对象都向一端移动，然后直接清除边界以外的内存</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220116235040046.png" alt="image-20220116235040046" style="zoom:40%;" />
+<h3 id="垃圾收集器">垃圾收集器</h3>
+<p>前面讨论的垃圾收集算法只是内存回收的方法，垃圾收集器就是来具体实现这些算法并实现内存回收</p>
+<p>不同厂商、不同版本的虚拟机实现差别很大，HotSpot 中包含的收集器如下图所示：</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220117000722672.png" alt="image-20220117000722672" style="zoom:80%;" />
+<h4 id="串行收集器">串行收集器</h4>
+<p>Serial（串行）收集器/Serial Old 收集器，是一个单线程的收集器，在垃圾收集时，会 Stop-the-World</p>
+<p>Serial/Serial Old 收集器运行示意图：</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220117000825597.png" alt="image-20220117000825597" style="zoom:50%;" />
+<p>优点是简单，对于单 cpu，由于没有多线程的交互开销，可能更高效，是默认的 Client 模式下的新生代收集器</p>
+<p>使用-XX:+UseSerialGC 来开启，会使用：Serial + Serial Old 的收集器组合</p>
+<p>新生代使用复制算法，老年代使用标记-整理算法</p>
+<h4 id="并行收集器">并行收集器</h4>
+<p>ParNew（并行）收集器：使用多线程进行垃圾回收，在垃圾收集时，会 Stop-the-World</p>
+<p>并行收集器运行示意图：</p>
+ <img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220118163834807.png" alt="image-20220118163834807" style="zoom:67%;" />
+<p>在并发能力好的 CPU 环境里，它停顿的时间要比串行收集器短;但对于单 CPU 或并发能力较弱的 CPU，由于多线程的交互开销，可能比串行收集器更差</p>
+<p>是 Server 模式下首选的新生代收集器，且能和 CMS 收集器配合使用</p>
+<p>不再使用-XX:+UseParNewGC 来单独开启</p>
+<p>-XX:ParallelGCTHreads：指定线程数，最好与 CPU 数量一致</p>
+<p>新生代使用复制算法</p>
+<h4 id="新生代-parallel-scavenge-收集器">新生代 Parallel Scavenge 收集器</h4>
+<p>新生代 Parallel Scavenge 收集器：是一个应用于新生代的、使用复制算法的、并行的收集器</p>
+<p>跟 ParNew 很类似，单更关注吞吐量，能最高效率的利用 CPU，适合运行后台应用</p>
+<p>Parallel Scavenge / Parallel Old 收集器运行示意图：</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220118170105022.png" alt="image-20220118170105022" style="zoom:50%;" />
+<p>使用 -XX:+UseParallelGC 来开启</p>
+<p>使用 -XX:UseParallelOldGC 来开启老年代使用 Parallel Old 收集器，使用 Parallel Scavenge + Parallel Old 的收集器组合</p>
+<p>-XX:MaxGCPauseMillis：设置 GC 的最大停顿时间</p>
+<p>新生代使用复制算法，老年代使用标记整理算法</p>
+<h4 id="cms-收集器">CMS 收集器</h4>
+<p>CMS（Concurrent Mark and Sweep 并发标记清除），这里的并发指的是 GC 线程和用户线程同时在运行，收集器分为：</p>
+<ul>
+<li>初始标记：只标记 GC Roots 能直接关联到的对象</li>
+<li>并发标记：进行 GC Roots Tracing 的过程</li>
+<li>重新标记：修正并发标记期间，因程序运行导致标记发生变化的那一部分对象</li>
+<li>并发清除：并发回收垃圾对象</li>
+</ul>
+<p>CMS 收集器运行示意图：</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220118172542839.png" alt="image-20220118172542839" style="zoom:50%;" />
+<p>在初始标记和重新标记两个阶段会发生 Stop-the-World</p>
+<p>使用标记清除算法，多线程并发收集的垃圾收集器</p>
+<p>最后的重置线程，指的是清空跟收集器相关的数据并重置，为下一次收集做准备</p>
+<p>优点：低停顿、并发执行</p>
+<p>缺点：</p>
+<ul>
+<li>并发执行，对 CPU 资源压力大</li>
+<li>无法处理「在处理过程中」产生的垃圾，可能导致 FullGC</li>
+<li>采用的标记清除算法会导致大量碎片，从而在分配大对象时可能触发 FullGC</li>
+</ul>
+<p>开启：-XX:UseConcMarkSweepGC：使用ParNew + CMS + Serial Old 的收集器组合，Serial Old 将作为 CMS 出错的后备收集器</p>
+<p>-XX:CMSInitiatingOccupancyFraction：设置 CMS 收集器在老年代空间被使用多少后触发回收，默认 80%。</p>
+<h4 id="g1-收集器">G1 收集器</h4>
+<p>G1（Garbage-First）收集器：是一款面向服务端应用的收集器，与其它收集器相比，具有如下特点：</p>
+<ul>
+<li>G1 把内存划分成多个独立的区域（Region）</li>
+<li>G1 仍采用分代思想，保留了新生代和老年代，但它们不再是物理隔离的，而是一部分 Region 的集合，且不需要 Region 是连续的</li>
+<li>G1 能充分利用多 CPU、多核环境硬件优势，尽量缩短 STW</li>
+<li>G1 整体上采用标记-整理算法，局部是通过复制算法，不会产生内存碎片</li>
+<li>G1 的停顿可预测，能明确指定在一个时间段内，消耗在垃圾收集上的时间不能超过指定时间</li>
+<li>G1 跟踪各个 Region 里面垃圾堆的价值大小，在后台维护一个优先列表，每次根据允许的时间来回收价值最大的区域，从而保证在有限时间内的高效收集,价值大小的判定：在有限的时间内能回收最多的区域价值大</li>
+</ul>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220118174352339.png" alt="image-20220118174352339" style="zoom:50%;" />
+<p>跟 CMS 类似，分为四个主要阶段：</p>
+<ol>
+<li>初始标记：只标记 GC Roots 能直接关联到的对象</li>
+<li>并发标记：进行 GC Roots Tracing 的过程</li>
+<li>最终标记：修正并发标记期间，因程序运行导致标记发生变化的那一部分对象</li>
+<li>筛选回收：根据时间来进行价值最大化的回收</li>
+</ol>
+<p>G1 收集器运行示意图：</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220118175539922.png" alt="image-20220118175539922" style="zoom:50%;" />
+<h5 id="使用和配置-g1">使用和配置 G1</h5>
+<p>-XX:UseG1GC：开启 G1，默认就是 G1。</p>
+<p>-XX:MaxGCPauseMillis=n：最大GC 停顿时间，这个是软目标，JVM 将尽可能（但不保证）停顿小于这个时间。</p>
+<p>-XX:InitiatingHeapOccupancyPercent=n：堆占用了指定百分比的时候就触发 GC，默认为 45。</p>
+<p>-XX:NewRatio=n：默认为 2。</p>
+<p>-XX:SurivorRatio=n：默认为 8。</p>
+<p>-XX:MaxTenuringThreshold=n：新生代到老年代的岁数，指的是在新生代中经历了多少次的垃圾回收都还存活，达到指定次数进入老年代，GC默认 15。</p>
+<p>-XX:ParallelGCThreads=n：并行 GC 的线程数，默认值会根据平台不同而不同。</p>
+<p>-XX:ConcGCThreads=n：并发 GC 使用的线程数。</p>
+<p>-XX:G1ReservePercent=n：设置作为空闲空间的预留内存百分比，以降低目标空间溢出的风险，默认数 10%。</p>
+<p>-XX:G1HeapRegionSize=n：设置的 G1 区域的大小。值是 2 的幂，范围是 1MB 到 32MB。目标是根据最小的 Java 堆大小划分出约 2048 个区域。</p>
+<h4 id="zgc-收集器">ZGC 收集器</h4>
+<p>ZGC 收集器（Z Garbage Collector）：JDK11 加入的低延迟收集器。</p>
+<p>ZGC 的设计目标是：</p>
+<ol>
+<li>支持 TB 级内存容量</li>
+<li>暂停时间低（&lt;10ms）</li>
+<li>对整个程序吞吐量的影响小于 15%</li>
+</ol>
+<p>ZGC 关键技术：着色指针和读屏障</p>
+<h5 id="着色指针">着色指针</h5>
+<blockquote>
+<p>着色指针是一种将信息存储在指针中的技术。</p>
+</blockquote>
+<h5 id="读屏障">读屏障</h5>
+<blockquote>
+<p>读屏障是JVM向应用代码插入一小段代码的技术。当应用线程从堆中读取对象引用时，就会执行这段代码。需要注意的是，仅「从堆中读取对象引用」才会触发这段代码。</p>
+</blockquote>
+<p>ZGC中读屏障的代码作用：在对象标记和转移过程中，用于确定对象的引用地址是否满足条件，并作出相应动作。</p>
+<h3 id="gc-性能指标">GC 性能指标</h3>
+<ul>
+<li>吞吐量 = 应用代码执行的时间/运行的总时间。</li>
+<li>GC 负荷，与吞吐量相反，是 GC 时间/运行的总时间。</li>
+<li>暂停时间，就是发生 Stop-The-World 的总时间。</li>
+<li>GC 频率，就是 GC在一个时间段内发生的次数。</li>
+<li>反应速度，就是从对象成为垃圾到被回收的时间。</li>
+<li>交互式应用通常希望暂停时间越少越好。</li>
+</ul>
+<h3 id="jvm-内存配置原则">JVM 内存配置原则</h3>
+<ul>
+<li>新生代尽可能设置大点，如果太小会导致：
+<ul>
+<li>YGC 次数更加频繁。</li>
+<li>可能导致 YGC 后的对象进入老年代，如果此时老年代满了，会触发 FGC。</li>
+</ul>
+</li>
+<li>对老年代，针对响应时间优先的应用：由于老年代通常采用并发收集器，因此其大小要综合考虑并发量和并发持续时间等参数。
+<ul>
+<li>如果设置小了，可能会造成内存碎片，高回收频率会导致应用暂停。</li>
+<li>如果设置大了，会需要较长的回收时间。</li>
+</ul>
+</li>
+<li>对老年代，针对吞吐量优先的应用：通常设置较大的新生代和较小的老年代，这样可以尽可能回收大部分短期对象，减少中期对象，而老年代尽量存放长期存活的对象。</li>
+<li>依据对象的存活周期进行分类，对象优先在新生代分配，长时间存活的对象进入老年代。</li>
+<li>根据不同代的特点，选取合适的收集算法：少量对象存活，适合复制算法;大量对象存活，适合标记清除或者标记整理。</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Docker 部署 Spring Boot 项目]]></title>
+        <id>https://sgaxun.github.io/post/docker-spring-boot/</id>
+        <link href="https://sgaxun.github.io/post/docker-spring-boot/">
+        </link>
+        <updated>2020-08-25T14:25:25.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="手工方式">手工方式</h2>
+<h3 id="准备">准备</h3>
+<p>创建一个 Spring Boot 项目「web-1.0-SNAPSHOT.jar」，打包 jar 包。</p>
+<h3 id="编写-dockerfile">编写 Dockerfile</h3>
+<pre><code class="language-shell">FROM java:8
+VOLUME /tmp
+ADD web-1.0-SNAPSHOT.jar web.jar
+EXPOSE 8080
+ENTRYPOINT [&quot;java&quot;,&quot;-Djava.security.egd=file:/dev/./urandom&quot;,&quot;-jar&quot;,&quot;/web.jar&quot;]
+</code></pre>
+<blockquote>
+<p>FROM：表示基础镜像，运行环境</p>
+<p>VOLUME：数据卷</p>
+<p>ADD：jar 包复制到/web.jar</p>
+<p>EXPOSE: 暴露端口</p>
+<p>ENTRYPOINT：容器运行时的命令，为了缩短 Tomcat 的启动时间，添加 java.security.egd 的系统属性指向/dev/urandom作为 ENTRYPOINT</p>
+</blockquote>
+<h3 id="构建容器">构建容器</h3>
+<pre><code class="language-shell">docker build -t web .
+</code></pre>
+<h3 id="运行容器">运行容器</h3>
+<pre><code class="language-shell">docker run -di --name 容器名称 -p 8080:8080 镜像名称
+</code></pre>
+<h3 id="查看运行日志">查看运行日志</h3>
+<pre><code class="language-shell">docker logs -f --tail=100 容器名称
+</code></pre>
+<h3 id="访问测试">访问测试</h3>
+<p>使用浏览器访问 http://ip:8080 测试结果</p>
+<h2 id="使用-idea">使用 IDEA</h2>
+<h3 id="配置-docker-远程连接端口">配置 Docker 远程连接端口</h3>
+<p>编辑配置文件</p>
+<pre><code class="language-shell">vi /usr/lib/systemd/system/docker.service
+</code></pre>
+<p>修改以ExecStart开头的行（centos 7）：添加</p>
+<pre><code class="language-shell">-H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock \
+</code></pre>
+<p>重启 Docker</p>
+<pre><code class="language-shell">systemctl daemon-reload
+service docker restart
+</code></pre>
+<p>重启之后测试远程连接是否正常，这里的2375是之前配置的端口</p>
+<pre><code class="language-shell">curl http://localhost:2375/version
+</code></pre>
+<p>看到回显基本上就没问题了。</p>
+<p>然后开启端口，或者关闭防火墙，二者选其一即可</p>
+<pre><code class="language-shell"># 开放端口
+firewall-cmd --zone=public --add-port=2375/tcp --permanent
+# 关闭防火墙
+chkconfig iptables off
+</code></pre>
+<h3 id="使用-idea-连接-docker">使用 IDEA 连接 Docker</h3>
+<p>IDEA 自带了 Docker 插件，如果没有去插件中心下载</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211225231522317.png" alt="image-20211225231522317" loading="lazy"></figure>
+<p>然后配置 Docker 地址，完成连接后会列出容器和镜像。然后配置阿里云镜像加速：</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211225232025926.png" alt="image-20211225232025926" loading="lazy"></figure>
+<h3 id="docker-maven-plugin">docker-maven-plugin</h3>
+<p>项目工程一般使用 Maven 编译打包，然后生成镜像，通过镜像上线，能够大大提供上线效率，同时能够快速动态扩容，快速回滚，着实很方便。docker-maven-plugin 插件就是为了帮助我们在Maven工程中，通过简单的配置，自动生成镜像并推送到仓库中。</p>
+<pre><code class="language-xml">&lt;build&gt;
+
+        &lt;finalName&gt;${project.artifactId}&lt;/finalName&gt;
+
+        &lt;plugins&gt;
+
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+                &lt;configuration&gt;
+                    &lt;fork&gt;true&lt;/fork&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+            &lt;!-- 跳过单元测试 --&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-surefire-plugin&lt;/artifactId&gt;
+                &lt;configuration&gt;
+                    &lt;skipTests&gt;true&lt;/skipTests&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+
+            &lt;!--使用docker-maven-plugin插件--&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;com.spotify&lt;/groupId&gt;
+                &lt;artifactId&gt;docker-maven-plugin&lt;/artifactId&gt;
+                &lt;version&gt;1.0.0&lt;/version&gt;
+                &lt;!--将插件绑定在某个phase执行--&gt;
+                &lt;executions&gt;
+                    &lt;execution&gt;
+                        &lt;id&gt;build-image&lt;/id&gt;
+                        &lt;!--用户只需执行mvn package ，就会自动执行mvn docker:build--&gt;
+                        &lt;phase&gt;package&lt;/phase&gt;
+                        &lt;goals&gt;
+                            &lt;goal&gt;build&lt;/goal&gt;
+                        &lt;/goals&gt;
+                    &lt;/execution&gt;
+                &lt;/executions&gt;
+                &lt;configuration&gt;
+                    &lt;!--指定生成的镜像名--&gt;
+                    &lt;imageName&gt;bruceliu/${project.artifactId}&lt;/imageName&gt;
+                    &lt;!--指定标签--&gt;
+                    &lt;imageTags&gt;
+                        &lt;imageTag&gt;latest&lt;/imageTag&gt;
+                    &lt;/imageTags&gt;
+                    &lt;!--指定基础镜像jdk1.8--&gt;
+                    &lt;baseImage&gt;java&lt;/baseImage&gt;
+                    &lt;!--镜像制作人本人信息--&gt;
+                    &lt;maintainer&gt;bruceliu@email.com&lt;/maintainer&gt;
+                    &lt;!--切换到ROOT目录--&gt;
+                    &lt;workdir&gt;/ROOT&lt;/workdir&gt;
+                    &lt;cmd&gt;[&quot;java&quot;, &quot;-version&quot;]&lt;/cmd&gt;
+                    &lt;entryPoint&gt;[&quot;java&quot;, &quot;-jar&quot;, &quot;/${project.build.finalName}.jar&quot;]&lt;/entryPoint&gt;
+                    &lt;!--指定远程 docker api地址--&gt;
+                    &lt;dockerHost&gt;http://122.51.50.249:2375&lt;/dockerHost&gt;
+                    &lt;!-- 这里是复制 jar 包到 docker 容器指定目录配置 --&gt;
+                    &lt;resources&gt;
+                        &lt;resource&gt;
+                            &lt;targetPath&gt;/&lt;/targetPath&gt;
+                            &lt;!--jar 包所在的路径  此处配置的 即对应 target 目录--&gt;
+                            &lt;directory&gt;${project.build.directory}&lt;/directory&gt;
+                            &lt;!--用于指定需要复制的文件 需要包含的 jar包 ，这里对应的是 Dockerfile中添加的文件名 --&gt;
+                            &lt;include&gt;${project.build.finalName}.jar&lt;/include&gt;
+                        &lt;/resource&gt;
+                    &lt;/resources&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+</code></pre>
+]]></content>
+    </entry>
+</feed>

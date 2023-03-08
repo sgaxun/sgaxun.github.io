@@ -1,0 +1,591 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spring Boot 项目打包 + Shell 脚本部署 | sgaxun&#39;s blog</title>
+<link rel="shortcut icon" href="https://sgaxun.github.io/favicon.ico?v=1678295674900">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://sgaxun.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Spring Boot 项目打包 + Shell 脚本部署 | sgaxun&#39;s blog - Atom Feed" href="https://sgaxun.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="分享 Spring Boot 打包并结合 Shell 脚本命令部署，重点在分享一个shell 程序启动工具，方便操作。
+profiles指定不同环境的配置
+通常一套程序分为了很多个部署环境：开发，测试，线上等，我们要想对这些环境区分配置文件..." />
+    <meta name="keywords" content="Spring Boot,Linux" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://sgaxun.github.io">
+  <img class="avatar" src="https://sgaxun.github.io/images/avatar.png?v=1678295674900" alt="">
+  </a>
+  <h1 class="site-title">
+    sgaxun&#39;s blog
+  </h1>
+  <p class="site-description">
+    Life couldn’t be any more fantastic ，It’s perfect
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/sgaxun" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://twitter.com/sgaxun" target="_blank">
+          <i class="ri-twitter-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://weibo.com/sgaxun" target="_blank">
+          <i class="ri-weibo-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Spring Boot 项目打包 + Shell 脚本部署
+            </h2>
+            <div class="post-info">
+              <span>
+                2021-06-23
+              </span>
+              <span>
+                12 min read
+              </span>
+              
+                <a href="https://sgaxun.github.io/tag/nfcD-CW0a/" class="post-tag">
+                  # Spring Boot
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/vougG-GAO/" class="post-tag">
+                  # Linux
+                </a>
+              
+            </div>
+            
+              <img class="post-feature-image" src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/20211226220753.png" alt="">
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>分享 Spring Boot 打包并结合 Shell 脚本命令部署，重点在分享一个shell 程序启动工具，方便操作。</p>
+<h2 id="profiles指定不同环境的配置">profiles指定不同环境的配置</h2>
+<p>通常一套程序分为了很多个部署环境：开发，测试，线上等，我们要想对这些环境区分配置文件，可以通过两种方式：</p>
+<ul>
+<li>通过application.yml中编码指定 profile.active=dev 方式指定</li>
+<li>通过mvn中profiles来区分不同环境对应的配置文件夹，人工可以手动在idea勾选生成不同环境的包</li>
+</ul>
+<p>第一种方式过于简单无需介绍，这里介绍第二种，首先在 mvn 中配置如下内容：</p>
+<pre><code class="language-xml">&lt;profiles&gt;
+	&lt;profile&gt;
+		&lt;id&gt;node&lt;/id&gt;
+		&lt;properties&gt;
+			&lt;!--传递给脚本的参数值--&gt;
+			&lt;activeProfile&gt;node&lt;/activeProfile&gt;
+			&lt;package-name&gt;${scripts_packageName}&lt;/package-name&gt;
+			&lt;boot-main&gt;${scripts_bootMain}&lt;/boot-main&gt;
+		&lt;/properties&gt;
+		&lt;activation&gt;
+			&lt;activeByDefault&gt;true&lt;/activeByDefault&gt;
+		&lt;/activation&gt;
+	&lt;/profile&gt;
+	&lt;profile&gt;
+		&lt;id&gt;node1&lt;/id&gt;
+		&lt;properties&gt;
+			&lt;activeProfile&gt;node1&lt;/activeProfile&gt;
+			&lt;package-name&gt;${scripts_packageName}&lt;/package-name&gt;
+			&lt;boot-main&gt;${scripts_bootMain}&lt;/boot-main&gt;
+		&lt;/properties&gt;
+	&lt;/profile&gt;
+	&lt;profile&gt;
+		&lt;id&gt;node2&lt;/id&gt;
+		&lt;properties&gt;
+			&lt;activeProfile&gt;node2&lt;/activeProfile&gt;
+			&lt;package-name&gt;${scripts_packageName}&lt;/package-name&gt;
+			&lt;boot-main&gt;${scripts_bootMain}&lt;/boot-main&gt;
+		&lt;/properties&gt;
+	&lt;/profile&gt;
+&lt;/profiles&gt;
+</code></pre>
+<p>id： 用来指定不同环境配置文件所在的目录。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640-20211226222427565.png" alt="图片" loading="lazy"></figure>
+<p>properties： 该节点中的节点是可作为参数传递给其他配置文件，如我这里的package-name节点值就可以在另外的assembly.xml或者shell脚本文件中通过${package-name}获取到，如下：</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640-20211226222452998.png" alt="图片" loading="lazy"></figure>
+<p>activeByDefault： 指定默认环境配置文件夹</p>
+<h2 id="maven-assembly-plugin打发布压缩包"><strong>maven-assembly-plugin打发布压缩包</strong></h2>
+<p>对于springboot程序打包，可以分为jar和war，这里是jar包；有场景是配置文件或者第三方等依赖包不想放到工程jar中，并且把这些文件压缩成一个zip包，方便上传到linux；此时通过maven-assembly-plugin和maven-jar-plugin就可以做到，mvn的配置如：</p>
+<pre><code class="language-xml">&lt;plugin&gt;
+	&lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+	&lt;artifactId&gt;maven-jar-plugin&lt;/artifactId&gt;
+	&lt;version&gt;2.6&lt;/version&gt;
+	&lt;configuration&gt;
+		&lt;archive&gt;
+			&lt;addMavenDescriptor&gt;false&lt;/addMavenDescriptor&gt;
+			&lt;manifest&gt;
+				&lt;addClasspath&gt;true&lt;/addClasspath&gt;
+				&lt;classpathPrefix&gt;lib/&lt;/classpathPrefix&gt;
+				&lt;mainClass&gt;${scripts_bootMain}&lt;/mainClass&gt;
+			&lt;/manifest&gt;
+		&lt;/archive&gt;
+		&lt;!--打包排除项--&gt;
+		&lt;excludes&gt;
+			&lt;exclude&gt;**/*.yml&lt;/exclude&gt;
+			&lt;exclude&gt;**/*.properties&lt;/exclude&gt;
+			&lt;exclude&gt;**/*.xml&lt;/exclude&gt;
+			&lt;exclude&gt;**/*.sh&lt;/exclude&gt;
+		&lt;/excludes&gt;
+	&lt;/configuration&gt;
+	&lt;executions&gt;
+		&lt;execution&gt;
+			&lt;id&gt;make-a-jar&lt;/id&gt;
+			&lt;phase&gt;compile&lt;/phase&gt;
+			&lt;goals&gt;
+				&lt;goal&gt;jar&lt;/goal&gt;
+			&lt;/goals&gt;
+		&lt;/execution&gt;
+	&lt;/executions&gt;
+&lt;/plugin&gt;
+&lt;plugin&gt;
+  &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+  &lt;artifactId&gt;maven-assembly-plugin&lt;/artifactId&gt;
+  &lt;version&gt;2.4&lt;/version&gt;
+  &lt;!-- The configuration of the plugin --&gt;
+  &lt;configuration&gt;
+    &lt;!-- Specifies the configuration file of the assembly plugin --&gt;
+    &lt;descriptors&gt;
+      &lt;descriptor&gt;${project.basedir}/src/main/assembly/assembly.xml&lt;/descriptor&gt;
+    &lt;/descriptors&gt;
+  &lt;/configuration&gt;
+  &lt;executions&gt;
+    &lt;execution&gt;
+      &lt;id&gt;make-assembly&lt;/id&gt;
+      &lt;phase&gt;package&lt;/phase&gt;
+      &lt;goals&gt;
+        &lt;goal&gt;single&lt;/goal&gt;
+      &lt;/goals&gt;
+    &lt;/execution&gt;
+  &lt;/executions&gt;
+&lt;/plugin&gt;
+</code></pre>
+<p>值得注意的地方如下几点：</p>
+<ul>
+<li>mainClass节点：用来指定启动main函数入口类路径，如这里的：com.sm.EurekaServerApplication</li>
+<li>excludes节点：排除主jar包中配置等一些列后缀文件，因为我们要包这些配置文件放到主包外面</li>
+<li>descriptor节点：用来指定assembly插件对应的assembly.xml配置文件</li>
+</ul>
+<p>有了上面mvn配置，还需要assembly.xml的配置，这里提取了结合shell脚本发布程序的配置：</p>
+<pre><code class="language-xml">&lt;assembly xmlns=&quot;http://maven.apache.org/ASSEMBLY/2.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+          xsi:schemaLocation=&quot;http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd
+http://maven.apache.org/ASSEMBLY/2.0.0 &quot;&gt;
+    &lt;id&gt;${activeProfile}&lt;/id&gt;
+    &lt;!--打包成一个用于发布的zip文件--&gt;
+    &lt;formats&gt;
+        &lt;format&gt;zip&lt;/format&gt;
+    &lt;/formats&gt;
+    &lt;!--true：zip中生成一级目录(此处屏蔽，配合脚本需要profiles后缀)--&gt;
+    &lt;includeBaseDirectory&gt;false&lt;/includeBaseDirectory&gt;
+    &lt;dependencySets&gt;
+        &lt;dependencySet&gt;
+            &lt;!--打包进zip文件的lib目录--&gt;
+            &lt;useProjectArtifact&gt;false&lt;/useProjectArtifact&gt;
+            &lt;outputDirectory&gt;${package-name}-${activeProfile}/lib&lt;/outputDirectory&gt;
+            &lt;unpack&gt;false&lt;/unpack&gt;
+        &lt;/dependencySet&gt;
+    &lt;/dependencySets&gt;
+
+    &lt;fileSets&gt;
+        &lt;!-- 配置文件打包进zip文件的conf目录 --&gt;
+        &lt;fileSet&gt;
+            &lt;directory&gt;${project.basedir}/src/main/profiles/${activeProfile}&lt;/directory&gt;
+            &lt;outputDirectory&gt;${package-name}-${activeProfile}/conf&lt;/outputDirectory&gt;
+            &lt;includes&gt;
+                &lt;include&gt;**/*&lt;/include&gt;
+                &lt;!--&lt;include&gt;*.xml&lt;/include&gt;--&gt;
+                &lt;!--&lt;include&gt;*.properties&lt;/include&gt;--&gt;
+                &lt;!--&lt;include&gt;*.yml&lt;/include&gt;--&gt;
+            &lt;/includes&gt;
+        &lt;/fileSet&gt;
+
+        &lt;!--启动脚本打包进zip文件--&gt;
+        &lt;fileSet&gt;
+            &lt;directory&gt;${project.basedir}/src/main/scripts&lt;/directory&gt;
+            &lt;outputDirectory&gt;&lt;/outputDirectory&gt;
+            &lt;includes&gt;
+                &lt;include&gt;**/*&lt;/include&gt;
+            &lt;/includes&gt;
+            &lt;!-- 文件文件权限为777 --&gt;
+            &lt;fileMode&gt;777&lt;/fileMode&gt;
+            &lt;!-- 目录权限为777 --&gt;
+            &lt;directoryMode&gt;777&lt;/directoryMode&gt;
+            &lt;!--脚本中参数变量为pom中的值 关键--&gt;
+            &lt;filtered&gt;true&lt;/filtered&gt;
+        &lt;/fileSet&gt;
+
+        &lt;!-- 项目编译出来的jar打包进zip文件 --&gt;
+        &lt;fileSet&gt;
+            &lt;directory&gt;${project.build.directory}&lt;/directory&gt;
+            &lt;outputDirectory&gt;${package-name}-${activeProfile}/&lt;/outputDirectory&gt;
+            &lt;includes&gt;
+                &lt;include&gt;*.jar&lt;/include&gt;
+            &lt;/includes&gt;
+        &lt;/fileSet&gt;
+    &lt;/fileSets&gt;
+&lt;/assembly&gt;
+</code></pre>
+<p>重点节点介绍：</p>
+<ul>
+<li>formats节点：把配置文件和jar包等压缩成什么文件格式，这里可以有：zip，tar等</li>
+<li>fileMode节点：指定scripts目录下脚本文件(这里是：shenniu_publish.sh)在linux上文件权限为777</li>
+<li>filtered节点：脚本中参数变量为pom的profiles中properties的值(该配置，是把mvn中属性值映射生成到sh文件中，如：${package-name})</li>
+</ul>
+<p>完成上面配置后，此时我们可以通过idea上勾选切换不同环境来打zip包，如图：</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640-20211226223222882.png" alt="图片" loading="lazy"></figure>
+<h2 id="startsh-脚本">start.sh 脚本</h2>
+<p>上面步骤完成了zip格式的发布包，我们再分享下启动程序的shell脚本，该脚本具有的功能如：</p>
+<ul>
+<li>解压zip+启动jar包</li>
+<li>启动jar包</li>
+<li>停止对应jar运行</li>
+<li>重启jar程序</li>
+</ul>
+<p>目前该shell中封装了两种启动jar命令的方式：</p>
+<ul>
+<li>java -cp</li>
+<li>java -jar</li>
+</ul>
+<p>如图命令格式：</p>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640-20211226223307412.png" alt="图片" loading="lazy"></figure>
+<p>全部 shell 脚本：</p>
+<pre><code class="language-shell">#!/usr/bin/env bash
+#可变参数变量
+languageType=&quot;javac&quot; #支持 java,javac,netcore 发布
+#参数值由pom文件传递
+baseZipName=&quot;${package-name}-${activeProfile}&quot; #压缩包名称 publish-test.zip的publish
+packageName=&quot;${package-name}&quot; #命令启动包名 xx.jar的xx
+mainclass=&quot;${boot-main}&quot; #java -cp启动时，指定main入口类;命令：java -cp conf;lib\*.jar;${packageName}.jar ${mainclass}
+
+#例子
+# baseZipName=&quot;publish-test&quot; #压缩包名称 publish-test.zip的publish
+# packageName=&quot;publish&quot; #命令启动包名 publish.jar的xx
+
+#固定变量
+basePath=$(cd `dirname $0`/; pwd)
+baseZipPath=&quot;${basePath}/${baseZipName}.zip&quot;  #压缩包路径
+baseDirPath=&quot;${basePath}&quot; #解压部署磁盘路径
+pid= #进程pid
+
+#解压
+function shenniu_unzip()
+{
+    echo &quot;解压---------------------------------------------&quot;
+    echo &quot;压缩包路径：${baseZipPath}&quot;
+    if [ ! `find ${baseZipPath}` ]
+    then
+        echo &quot;不存在压缩包：${baseZipPath}&quot;
+    else
+        echo &quot;解压磁盘路径：${baseDirPath}/${baseZipName}&quot;
+        echo &quot;开始解压...&quot;
+
+        #解压命令
+        unzip -od ${baseDirPath}/${baseZipName} ${baseZipPath}
+
+        #设置执行权限
+        chmod +x ${baseDirPath}/${baseZipName}/${packageName}
+
+        echo &quot;解压完成。&quot;
+    fi
+}
+
+#检测pid
+function getPid()
+{
+    echo &quot;检测状态---------------------------------------------&quot;
+    pid=`ps -ef | grep -n ${packageName} | grep -v grep | awk '{print $2}'`
+    if [ ${pid} ]
+    then
+        echo &quot;运行pid：${pid}&quot;
+    else
+        echo &quot;未运行&quot;
+    fi
+}
+
+#启动程序
+function start()
+{
+    #启动前，先停止之前的
+    stop
+    if [ ${pid} ]
+    then
+        echo &quot;停止程序失败，无法启动&quot;
+    else
+        echo &quot;启动程序---------------------------------------------&quot;
+
+        #选择语言类型
+        read -p &quot;输入程序类型(java,javac,netcore)，下一步按回车键(默认：${languageType})：&quot; read_languageType
+        if [ ${read_languageType} ]
+        then
+            languageType=${read_languageType}
+        fi
+        echo &quot;选择程序类型：${languageType}&quot;
+
+        #进入运行包目录
+        cd ${baseDirPath}/${baseZipName}
+
+        #分类启动
+        if [ &quot;${languageType}&quot; == &quot;javac&quot; ]
+        then
+            if [ ${mainclass} ]
+            then
+                nohup java -cp conf:lib\*.jar:${packageName}.jar ${mainclass} &gt;${baseDirPath}/${packageName}.out 2&gt;&amp;1 &amp;
+               #nohup java -cp conf:lib\*.jar:${packageName}.jar ${mainclass} &gt;/dev/null 2&gt;&amp;1 &amp;
+            fi
+        elif [ &quot;${languageType}&quot; == &quot;java&quot; ]
+        then
+            nohup java -jar ${baseDirPath}/${baseZipName}/${packageName}.jar &gt;/dev/null 2&gt;&amp;1 &amp;
+            # java -jar ${baseDirPath}/${baseZipName}/${packageName}.jar
+        elif [ &quot;${languageType}&quot; == &quot;netcore&quot; ]
+        then
+            #nohup dotnet run ${baseDirPath}/${baseZipName}/${packageName} &gt;/dev/null 2&gt;&amp;1 &amp;
+            nohup ${baseDirPath}/${baseZipName}/${packageName} &gt;/dev/null 2&gt;&amp;1 &amp;
+        fi
+
+        #查询是否有启动进程
+        getPid
+        if [ ${pid} ]
+        then
+            echo &quot;已启动&quot;
+            #nohup日志
+            tail -n 50 -f ${baseDirPath}/${packageName}.out
+        else
+            echo &quot;启动失败&quot;
+        fi
+    fi
+}
+
+#停止程序
+function stop()
+{
+    getPid
+    if [ ${pid} ]
+    then
+        echo &quot;停止程序---------------------------------------------&quot;
+        kill -9 ${pid}
+
+        getPid
+        if [ ${pid} ]
+        then
+            #stop
+            echo &quot;停止失败&quot;
+        else
+            echo &quot;停止成功&quot;
+        fi
+    fi
+}
+
+#启动时带参数，根据参数执行
+if [ ${#} -ge 1 ]
+then
+    case ${1} in
+        &quot;start&quot;)
+            start
+        ;;
+        &quot;restart&quot;)
+            start
+        ;;
+        &quot;stop&quot;)
+            stop
+        ;;
+        &quot;unzip&quot;)
+            #执行解压
+            shenniu_unzip
+            #执行启动
+            start
+        ;;
+        *)
+            echo &quot;${1}无任何操作&quot;
+        ;;
+    esac
+else
+    echo &quot;
+    command如下命令：
+    unzip：解压并启动
+    start：启动
+    stop：停止进程
+    restart：重启
+
+    示例命令如：./shenniu_publish start
+    &quot;
+fi
+</code></pre>
+<p>shell中的参数 package-name，activeProfile，boot-main 都是由mvn中profiles的properties中提供，是可变的参数，脚本代码本身不需要人工去修改，只需要变的是mvn的参数即可；其实在我们生成zip包的时候，shell中的参数就被替换了，可以看zip中shell文件内容。</p>
+<p>把生成的zip上传到linux上，通过命令解压：</p>
+<pre><code class="language-shell">unzip -od eureka-server-0.0.1-node eureka-server-0.0.1-node.zip
+</code></pre>
+<blockquote>
+<p>如果是在windows上编辑的这个脚本，其空格等和linux上不一样，所以运行会有问题，要解决可以使用vim命令在linux把该文件转成linux格式，如下命令：</p>
+</blockquote>
+<pre><code class="language-shell">vim shenniu_publish.sh
+set ff=unix
+:wq
+</code></pre>
+<p>运行脚本 <code>./start.sh</code></p>
+<p>该脚本提供了四个命令</p>
+<ul>
+<li>unzip 解压并启动</li>
+<li>start 启动</li>
+<li>stop 停止进程</li>
+<li>restart 重启</li>
+</ul>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#profiles%E6%8C%87%E5%AE%9A%E4%B8%8D%E5%90%8C%E7%8E%AF%E5%A2%83%E7%9A%84%E9%85%8D%E7%BD%AE">profiles指定不同环境的配置</a></li>
+<li><a href="#maven-assembly-plugin%E6%89%93%E5%8F%91%E5%B8%83%E5%8E%8B%E7%BC%A9%E5%8C%85"><strong>maven-assembly-plugin打发布压缩包</strong></a></li>
+<li><a href="#startsh-%E8%84%9A%E6%9C%AC">start.sh 脚本</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://sgaxun.github.io/post/spring-cloud-eureka/">
+              <h3 class="post-title">
+                Eureka 核心特性
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: '0154dac2d8f124ab8f32',
+    clientSecret: '2cd5ab9c1c2537bd87d00d6bebc2062845b98e9a',
+    repo: 'sgaxun.github.io',
+    owner: 'sgaxun',
+    admin: ['sgaxun'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  <a href="https://beian.miit.gov.cn" target="_blank">豫ICP备19001791号-1</a>
+  <a class="rss" href="https://sgaxun.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

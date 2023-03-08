@@ -1,0 +1,497 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spring Boot 集成 WebSocket | sgaxun&#39;s blog</title>
+<link rel="shortcut icon" href="https://sgaxun.github.io/favicon.ico?v=1678295674900">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://sgaxun.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Spring Boot 集成 WebSocket | sgaxun&#39;s blog - Atom Feed" href="https://sgaxun.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="WebSocket
+WebSocket 协议是基于 TCP 的一种新的网络协议，最大特点就是，服务器可以主动向客户端推送信息，客户端也可以主动向服务器发送信息，是真正的双向平等对话，属于服务器推送技术的一种。
+
+Spring Boot 整合..." />
+    <meta name="keywords" content="WebSocket,Spring Boot" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://sgaxun.github.io">
+  <img class="avatar" src="https://sgaxun.github.io/images/avatar.png?v=1678295674900" alt="">
+  </a>
+  <h1 class="site-title">
+    sgaxun&#39;s blog
+  </h1>
+  <p class="site-description">
+    Life couldn’t be any more fantastic ，It’s perfect
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/sgaxun" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://twitter.com/sgaxun" target="_blank">
+          <i class="ri-twitter-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://weibo.com/sgaxun" target="_blank">
+          <i class="ri-weibo-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Spring Boot 集成 WebSocket
+            </h2>
+            <div class="post-info">
+              <span>
+                2020-12-20
+              </span>
+              <span>
+                7 min read
+              </span>
+              
+                <a href="https://sgaxun.github.io/tag/BgJbKFmMX/" class="post-tag">
+                  # WebSocket
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/nfcD-CW0a/" class="post-tag">
+                  # Spring Boot
+                </a>
+              
+            </div>
+            
+              <img class="post-feature-image" src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/20211225234327.png" alt="">
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="websocket">WebSocket</h2>
+<p>WebSocket 协议是基于 TCP 的一种新的网络协议，最大特点就是，服务器可以主动向客户端推送信息，客户端也可以主动向服务器发送信息，是真正的双向平等对话，属于服务器推送技术的一种。</p>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/bg2017051502.png" alt="img" loading="lazy"></figure>
+<h2 id="spring-boot-整合">Spring Boot 整合</h2>
+<h3 id="添加依赖">添加依赖</h3>
+<p>Maven 依赖</p>
+<pre><code class="language-xml">&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-websocket&lt;/artifactId&gt;
+&lt;/dependency&gt;
+</code></pre>
+<h3 id="启用-spring-boot-对-websocket-的支持">启用 Spring Boot 对 WebSocket 的支持</h3>
+<p>配置类</p>
+<pre><code class="language-java">@Configuration
+public class WebSocketConfig {
+    @Bean
+    public ServerEndpointExporter serverEndpointExporter() {
+        return new ServerEndpointExporter();
+    }
+}
+</code></pre>
+<h3 id="核心配置websocketserver">核心配置：WebSocketServer</h3>
+<p>因为WebSocket是类似客户端服务端的形式(采用ws协议)，那么这里的WebSocketServer其实就相当于一个ws协议的Controller</p>
+<ul>
+<li>@ ServerEndpoint 注解是一个类层次的注解，它的功能主要是将目前的类定义成一个websocket服务器端, 注解的值将被用于监听用户连接的终端访问URL地址,客户端可以通过这个URL来连接到WebSocket服务器端</li>
+<li>新建一个ConcurrentHashMap webSocketMap 用于接收当前userId的WebSocket，方便传递之间对userId进行推送消息。</li>
+</ul>
+<pre><code class="language-java">@Component
+@Slf4j
+@Service
+@ServerEndpoint(&quot;/api/websocket/{sid}&quot;)
+public class WebSocketServer {
+    //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
+    private static int onlineCount = 0;
+    //concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
+    private static CopyOnWriteArraySet&lt;WebSocketServer&gt; webSocketSet = new CopyOnWriteArraySet&lt;WebSocketServer&gt;();
+
+    //与某个客户端的连接会话，需要通过它来给客户端发送数据
+    private Session session;
+
+    //接收sid
+    private String sid = &quot;&quot;;
+
+    /**
+     * 连接建立成功调用的方法
+     */
+    @OnOpen
+    public void onOpen(Session session, @PathParam(&quot;sid&quot;) String sid) {
+        this.session = session;
+        webSocketSet.add(this);     //加入set中
+        this.sid = sid;
+        addOnlineCount();           //在线数加1
+        try {
+            sendMessage(&quot;conn_success&quot;);
+            log.info(&quot;有新窗口开始监听:&quot; + sid + &quot;,当前在线人数为:&quot; + getOnlineCount());
+        } catch (IOException e) {
+            log.error(&quot;websocket IO Exception&quot;);
+        }
+    }
+
+    /**
+     * 连接关闭调用的方法
+     */
+    @OnClose
+    public void onClose() {
+        webSocketSet.remove(this);  //从set中删除
+        subOnlineCount();           //在线数减1
+        //断开连接情况下，更新主板占用情况为释放
+        log.info(&quot;释放的sid为：&quot;+sid);
+        //这里写你 释放的时候，要处理的业务
+        log.info(&quot;有一连接关闭！当前在线人数为&quot; + getOnlineCount());
+
+    }
+
+    /**
+     * 收到客户端消息后调用的方法
+     * @ Param message 客户端发送过来的消息
+     */
+    @OnMessage
+    public void onMessage(String message, Session session) {
+        log.info(&quot;收到来自窗口&quot; + sid + &quot;的信息:&quot; + message);
+        //群发消息
+        for (WebSocketServer item : webSocketSet) {
+            try {
+                item.sendMessage(message);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * @ Param session
+     * @ Param error
+     */
+    @OnError
+    public void onError(Session session, Throwable error) {
+        log.error(&quot;发生错误&quot;);
+        error.printStackTrace();
+    }
+
+    /**
+     * 实现服务器主动推送
+     */
+    public void sendMessage(String message) throws IOException {
+        this.session.getBasicRemote().sendText(message);
+    }
+
+    /**
+     * 群发自定义消息
+     */
+    public static void sendInfo(String message, @PathParam(&quot;sid&quot;) String sid) throws IOException {
+        log.info(&quot;推送消息到窗口&quot; + sid + &quot;，推送内容:&quot; + message);
+
+        for (WebSocketServer item : webSocketSet) {
+            try {
+                //这里可以设定只推送给这个sid的，为null则全部推送
+                if (sid == null) {
+//                    item.sendMessage(message);
+                } else if (item.sid.equals(sid)) {
+                    item.sendMessage(message);
+                }
+            } catch (IOException e) {
+                continue;
+            }
+        }
+    }
+
+    public static synchronized int getOnlineCount() {
+        return onlineCount;
+    }
+
+    public static synchronized void addOnlineCount() {
+        WebSocketServer.onlineCount++;
+    }
+
+    public static synchronized void subOnlineCount() {
+        WebSocketServer.onlineCount--;
+    }
+
+    public static CopyOnWriteArraySet&lt;WebSocketServer&gt; getWebSocketSet() {
+        return webSocketSet;
+    }
+}
+</code></pre>
+<h3 id="测试-controller">测试 Controller</h3>
+<pre><code class="language-java">@Controller(&quot;web_Scoket_system&quot;)
+@RequestMapping(&quot;/api/socket&quot;)
+public class SystemController {
+    //页面请求
+    @GetMapping(&quot;/index/{userId}&quot;)
+    public ModelAndView socket(@PathVariable String userId) {
+        ModelAndView mav = new ModelAndView(&quot;/socket1&quot;);
+        mav.addObject(&quot;userId&quot;, userId);
+        return mav;
+    }
+
+    //推送数据接口
+    @ResponseBody
+    @RequestMapping(&quot;/socket/push/{cid}&quot;)
+    public Map pushToWeb(@PathVariable String cid, String message) {
+        Map&lt;String,Object&gt; result = new HashMap&lt;&gt;();
+        try {
+            WebSocketServer.sendInfo(message, cid);
+            result.put(&quot;code&quot;, cid);
+            result.put(&quot;msg&quot;, message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+}
+</code></pre>
+<h3 id="测试页面-indexhtml">测试页面 index.html</h3>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+
+ &lt;head&gt;
+  &lt;meta charset=&quot;utf-8&quot;&gt;
+  &lt;title&gt;Java后端WebSocket的Tomcat实现&lt;/title&gt;
+  &lt;script type=&quot;text/javascript&quot; src=&quot;js/jquery.min.js&quot;&gt;&lt;/script&gt;
+ &lt;/head&gt;
+
+ &lt;body&gt;
+  &lt;div id=&quot;main&quot; style=&quot;width: 1200px;height:800px;&quot;&gt;&lt;/div&gt;
+  Welcome&lt;br/&gt;&lt;input id=&quot;text&quot; type=&quot;text&quot; /&gt;
+  &lt;button onclick=&quot;send()&quot;&gt;发送消息&lt;/button&gt;
+  &lt;hr/&gt;
+  &lt;button onclick=&quot;closeWebSocket()&quot;&gt;关闭WebSocket连接&lt;/button&gt;
+  &lt;hr/&gt;
+  &lt;div id=&quot;message&quot;&gt;&lt;/div&gt;
+ &lt;/body&gt;
+ &lt;script type=&quot;text/javascript&quot;&gt;
+  var websocket = null;
+  //判断当前浏览器是否支持WebSocket
+  if('WebSocket' in window) {
+   //改成你的地址
+   websocket = new WebSocket(&quot;ws://192.168.100.196:8082/api/websocket/100&quot;);
+  } else {
+   alert('当前浏览器 Not support websocket')
+  }
+
+  //连接发生错误的回调方法
+  websocket.onerror = function() {
+   setMessageInnerHTML(&quot;WebSocket连接发生错误&quot;);
+  };
+
+  //连接成功建立的回调方法
+  websocket.onopen = function() {
+   setMessageInnerHTML(&quot;WebSocket连接成功&quot;);
+  }
+  var U01data, Uidata, Usdata
+  //接收到消息的回调方法
+  websocket.onmessage = function(event) {
+   console.log(event);
+   setMessageInnerHTML(event);
+   setechart()
+  }
+
+  //连接关闭的回调方法
+  websocket.onclose = function() {
+   setMessageInnerHTML(&quot;WebSocket连接关闭&quot;);
+  }
+
+  //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+  window.onbeforeunload = function() {
+   closeWebSocket();
+  }
+
+  //将消息显示在网页上
+  function setMessageInnerHTML(innerHTML) {
+   document.getElementById('message').innerHTML += innerHTML + '&lt;br/&gt;';
+  }
+
+  //关闭WebSocket连接
+  function closeWebSocket() {
+   websocket.close();
+  }
+
+  //发送消息
+  function send() {
+   var message = document.getElementById('text').value;
+   websocket.send('{&quot;msg&quot;:&quot;' + message + '&quot;}');
+   setMessageInnerHTML(message + &quot;&amp;#13;&quot;);
+  }
+ &lt;/script&gt;
+
+&lt;/html&gt;
+</code></pre>
+<h3 id="结果展示">结果展示</h3>
+<p>后台输出</p>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211226214558708.png" alt="image-20211226214558708" loading="lazy"></figure>
+<p>前台显示</p>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/640.png" alt="图片" loading="lazy"></figure>
+<h3 id="问题">问题</h3>
+<p>由于 WebSocket 启动时优先于 Spring 容器，从而导致在 WebSocketServer 中调用业务会空指针异常，所以需要在 WebSocketServer 中将用到的 service 给静态初始化</p>
+<pre><code class="language-java">public static ITestService testService;
+</code></pre>
+<p>WebSocketConfig 中增加以下内容</p>
+<pre><code class="language-java">@Autowired
+private void setTestService(ITestService testService){
+	Websocketserver.testService = testService:
+}
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#websocket">WebSocket</a></li>
+<li><a href="#spring-boot-%E6%95%B4%E5%90%88">Spring Boot 整合</a>
+<ul>
+<li><a href="#%E6%B7%BB%E5%8A%A0%E4%BE%9D%E8%B5%96">添加依赖</a></li>
+<li><a href="#%E5%90%AF%E7%94%A8-spring-boot-%E5%AF%B9-websocket-%E7%9A%84%E6%94%AF%E6%8C%81">启用 Spring Boot 对 WebSocket 的支持</a></li>
+<li><a href="#%E6%A0%B8%E5%BF%83%E9%85%8D%E7%BD%AEwebsocketserver">核心配置：WebSocketServer</a></li>
+<li><a href="#%E6%B5%8B%E8%AF%95-controller">测试 Controller</a></li>
+<li><a href="#%E6%B5%8B%E8%AF%95%E9%A1%B5%E9%9D%A2-indexhtml">测试页面 index.html</a></li>
+<li><a href="#%E7%BB%93%E6%9E%9C%E5%B1%95%E7%A4%BA">结果展示</a></li>
+<li><a href="#%E9%97%AE%E9%A2%98">问题</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://sgaxun.github.io/post/spring-boot-start-process/">
+              <h3 class="post-title">
+                Spring Boot 启动流程
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: '0154dac2d8f124ab8f32',
+    clientSecret: '2cd5ab9c1c2537bd87d00d6bebc2062845b98e9a',
+    repo: 'sgaxun.github.io',
+    owner: 'sgaxun',
+    admin: ['sgaxun'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  <a href="https://beian.miit.gov.cn" target="_blank">豫ICP备19001791号-1</a>
+  <a class="rss" href="https://sgaxun.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

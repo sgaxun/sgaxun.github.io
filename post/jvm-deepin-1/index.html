@@ -1,0 +1,459 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JVM 原理探究之一 | sgaxun&#39;s blog</title>
+<link rel="shortcut icon" href="https://sgaxun.github.io/favicon.ico?v=1678295674900">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://sgaxun.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="JVM 原理探究之一 | sgaxun&#39;s blog - Atom Feed" href="https://sgaxun.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="概述
+
+JVM：Java Virtual Machine，也就是 Java 虚拟机
+所谓虚拟机是指：通过软件模拟的具有完整硬件系统功能的、运行在一个完全隔离环境中的计算机系统
+JVM 是通过软件来模拟 Java 字节码的指令集，是 Java..." />
+    <meta name="keywords" content="JVM,Java" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://sgaxun.github.io">
+  <img class="avatar" src="https://sgaxun.github.io/images/avatar.png?v=1678295674900" alt="">
+  </a>
+  <h1 class="site-title">
+    sgaxun&#39;s blog
+  </h1>
+  <p class="site-description">
+    Life couldn’t be any more fantastic ，It’s perfect
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/sgaxun" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://twitter.com/sgaxun" target="_blank">
+          <i class="ri-twitter-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://weibo.com/sgaxun" target="_blank">
+          <i class="ri-weibo-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              JVM 原理探究之一
+            </h2>
+            <div class="post-info">
+              <span>
+                2020-02-10
+              </span>
+              <span>
+                12 min read
+              </span>
+              
+                <a href="https://sgaxun.github.io/tag/LeCWeYCV0/" class="post-tag">
+                  # JVM
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/216dW9c-b/" class="post-tag">
+                  # Java
+                </a>
+              
+            </div>
+            
+              <img class="post-feature-image" src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/20220110234517.png" alt="">
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="概述">概述</h2>
+<ul>
+<li>JVM：Java Virtual Machine，也就是 Java 虚拟机</li>
+<li>所谓虚拟机是指：通过软件模拟的具有完整硬件系统功能的、运行在一个完全隔离环境中的计算机系统</li>
+<li>JVM 是通过软件来模拟 Java 字节码的指令集，是 Java 程序的运行环境</li>
+</ul>
+<!-- more -->
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/Snipaste_2022-01-05_20-47-19.png" alt="Snipaste_2022-01-05_20-47-19" style="zoom:50%;" />
+<h2 id="主要功能">主要功能</h2>
+<ol>
+<li>通过 ClassLoader 寻找和装载 class 文件</li>
+<li>解释字节码成为指令并执行，提供 class 文件的运行环境</li>
+<li>进行运行期间的内存分配和垃圾回收</li>
+<li>提供与硬件交互的平台</li>
+</ol>
+<h2 id="跨平台">跨平台</h2>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220105220844479.png" alt="image-20220105220844479" style="zoom:50%;" />
+<h2 id="jvm-规范">JVM 规范</h2>
+<h3 id="jvm-规范作用">JVM 规范作用</h3>
+<ul>
+<li>Java 虚拟机规范为不同的硬件平台提供了一种编译 Java 技术代码的规范</li>
+<li>该规范使 Java 软件独立于平台，因为编译是针对作为虚拟机的「一般机器」而做</li>
+<li>这个「一般机器」可用软件模拟并运行于各种现存的计算机系统,也可用硬件来实现</li>
+</ul>
+<h3 id="jvm-规范定义的主要内容">JVM 规范定义的主要内容</h3>
+<ul>
+<li>字节码指令集（相当于CPU）</li>
+<li>Class 文件的格式</li>
+<li>数据类型和值</li>
+<li>运行时数据区</li>
+<li>栈帧</li>
+<li>特殊方法</li>
+</ul>
+<p>&lt;init&gt; 实例初始化方法，通过 JVM 的 invokespecial 指令来调用。<br>
+&lt;clinit&gt; 类或接口的初始化方法，不包含参数，返回 void</p>
+<ul>
+<li>
+<p>类库<br>
+Java 虚拟机必须要对一些 Java 类库提供支持，否则这些类库根本无法实现，比如：</p>
+<ol>
+<li>反射</li>
+<li>加载和创建类或接口，如 ClassLoader</li>
+<li>连接和初始化类和接口的类</li>
+<li>安全，如 security</li>
+<li>多线程</li>
+<li>弱引用</li>
+</ol>
+</li>
+<li>
+<p>异常</p>
+</li>
+<li>
+<p>虚拟机的启动、加载、链接和初始化</p>
+</li>
+</ul>
+<h2 id="class-字节码">Class 字节码</h2>
+<p>Class 文件是 JVM 的输入，Java 虚拟机规范中定义了 Class 文件的结构。Class 文件是 JVM 实现跨平台、一次编译到处运行的基础。</p>
+<p>Class 文件是一组以8字节为单位的字节流，各个项目按顺序紧凑排列;</p>
+<p>对于占用空间大于8字节的数据项，按照高位在前的方式分割成多个8字节进行存储;</p>
+<p>Class 文件格式里面只有两种类型：无符号数、表。</p>
+<h2 id="asm">ASM</h2>
+<h3 id="认识-asm">认识 ASM</h3>
+<p>ASM 是一个 Java 字节码的操纵框架，它能被用来动态生成类或者增强既有类的功能。</p>
+<p>ASM 可以直接产生二进制 class 文件，也可以在类被加载入虚拟机之前动态改变类行为，ASM 从类文件中读入信息后，能够改变类行为，分析类信息，甚至能根据要求生成新类。</p>
+<p>目前许多框架如 cglib、Hibernate、Spring 都直接或者间接的使用 ASM 操作字节码。</p>
+<h3 id="asm编程模型和核心api">ASM编程模型和核心API</h3>
+<p>Core API：提供了基于事件形式的编程模型。该模型不需要一次性将整个类结构读取到内存中，因此这种方式更快，需要更少内存，但这种编程方式难度较大。</p>
+<p>Tree API：提供了基于树形的编程模型。该模型需要一次性将一个类的完整结构全部读取道内存当中，所以这种方法需要更多的内存，这种编程方式比较简单。</p>
+<p>ASM Core API 中操纵字节码的功能基于 ClassVisitor 接口。这个接口中的每个方法对应了 class 文件中的每一项。</p>
+<p>ASM 提供了三个基于 ClassVisitor 接口的类来实现 class 文件的生成和转换。</p>
+<ol>
+<li>ClassReader：ClassReader 解析一个类的 class 字节码。</li>
+<li>ClassAdapter：ClassAdapter 是 ClassVisitor 的实现类，实现要变化的功能。</li>
+<li>ClassWriter：ClassWriter 也是 ClassVisitor 的实现类，可以用来输出变化后的字节码。</li>
+</ol>
+<p>ASM 给我们提供了 ASMifier 工具来帮助开发，可使用 ASMifier 工具生成 ASM 结构来对比。</p>
+<h2 id="类加载-连接和初始化">类加载、连接和初始化</h2>
+<h3 id="概述-2">概述</h3>
+<p>类从被加载道 JVM 开始，到卸载出内存，整个生命周期如图</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20220107233051892.png" alt="image-20220107233051892" style="zoom:50%;" />
+<p>加载：查找并加载类文件的二进制数据</p>
+<p>连接：将已经读入内存的类的二进制数据合并到 JVM 运行时环境中，包含如下几个步骤：</p>
+<ol>
+<li>验证：确保被加载类的正确性，保证 class 文件符合 Java 虚拟机的要求，并且不能损害到虚拟机安全</li>
+<li>准备：为类的「静态变量」分配内存，并初始化它们</li>
+<li>解析：把常量池中的符号引用转换成直接引用</li>
+</ol>
+<p>初始化：为类的静态变量赋初始值</p>
+<h3 id="类加载要完成的功能">类加载要完成的功能</h3>
+<ol>
+<li>通过类的全限定名来获取该类的二进制字节流</li>
+<li>把二进制字节流转化为方法区的运行时数据结构</li>
+<li>在堆上创建一个 java.lang.Class 对象，用来封装类在方法区内的数据结构，并向外提供了访问方法区内数据结构的接口</li>
+</ol>
+<h3 id="加载类的方式">加载类的方式</h3>
+<p>最常见的方式：本地文件系统中加载、从 jar 等归档文件中加载</p>
+<p>动态的方式：将 java 源文件动态编译成 class</p>
+<p>其它方式：网络下载、从专有数据库中加载等等</p>
+<h3 id="类加载器">类加载器</h3>
+<p>Java 虚拟机自带的加载器包含如下几种：</p>
+<ul>
+<li>启动类加载器（ BootstrapClassLoader ）</li>
+<li>扩展类加载器（ ExtensionClassLoader ） JDK8</li>
+<li>平台类加载器（ PlatformClassLoader ）&gt;= jdk9</li>
+<li>应用程序类加载器（ AppClassLoader ）</li>
+</ul>
+<p>用户自定义的加载器，是 java.lang.ClassLoader 的子类，用户可以定制类的加载方式;只不过自定义类加载器其加载的顺序是在所有系统类加载器的最后</p>
+<h3 id="类加载器的关系">类加载器的关系</h3>
+<p>自定义类加载器 -&gt; 应用程序类加载器 -&gt; 平台类加载器/扩展类加载器 -&gt; 启动类加载器</p>
+<h3 id="类加载器说明">类加载器说明</h3>
+<p>启动类加载器：用于加载启动的基础模块类，比如：java.base、java.management、java.xml 等等</p>
+<p>平台类加载器：用于加载一些平台相关模块，比如：java.scripting、java.compiler*、java.corba* 等等</p>
+<p>应用程序类加载器：用于加载应用级别的模块，比如：jdk.compiler、jdk.jartool、jdk.jshell 等等;还加载 classpath 路径中的所有类库</p>
+<p>JDK8 启动类加载器：负责将&lt;JAVA_HOME&gt;/lib，或者 -Xbootclasspath 参数指定的路径中的，且是虚拟机识别的类库加载到内存中（按照名字识别，比如 rt.jar，对于不能识别的文件不予装载）</p>
+<p>JDK8 扩展类加载器：负责加载&lt;JRE_HOME&gt;/lib/ext,或者 java.ext.dirs 系统变量所指定路径中的所有类库</p>
+<p>JDK8 应用程序类加载器：加载 classpath 路径中的所有类库</p>
+<p>Java 程序不能直接引用启动类加载器，直接设置 classLoader 为 null，默认就使用启动类加载器</p>
+<p>类加载器并不需要等到某各类「首次主动使用」的时候才加载它，JVM 规范允许类加载器在预料到某各类将要被使用的时候就预先加载它</p>
+<p>如果在加载的时候 .class 文件缺失，会在该类首次主动使用时报告 LinkageError 错误，如果一直没有被使用，就不会报错</p>
+<h2 id="双亲委派模型">双亲委派模型</h2>
+<p>JVM 中的 ClassLoader 通常采用双亲委派模型，要求出了启动类加载器外，其余的类加载器都应该有自己的父级加载器。这里的父子关系是组合而不是继承，工作过程如下：</p>
+<ol>
+<li>一个类加载器接收到类加载请求后，首先搜索它的内建加载器定义的所有「具名模块」</li>
+<li>如果找到了合适的模块定义，将会使用该加载器来加载</li>
+<li>如果 class 没有在这些加载器定义的具名模块中找到，那么将会委托给父级加载器，知道启动类加载器</li>
+<li>如果父级加载器反馈它不能完成加载请求，比如在它的搜索路径下找不到这个类，那子的类加载器才自己来加载</li>
+<li>在类路径下找到的类将成为这些加载器的无名模块</li>
+</ol>
+<p>以上是 JDK9 以上的流程，JDK8 及以下流程不包含模块查找部分：<strong>当一个类加载器收到了类加载的请求的时候，他不会直接去加载指定的类，而是把这个请求委托给自己的父加载器去加载。只有父加载器无法加载这个类的时候，才会由当前这个加载器来负责类的加载。</strong></p>
+<h3 id="双亲委派模型说明">双亲委派模型说明</h3>
+<ol>
+<li>双亲委派模型对于保证 Java 程序的稳定运作很重要</li>
+<li>实现双亲委派的代码在 java.lang.ClassLoader 的 loadClass() 方法中，如果自定义类加载器的话，推荐覆盖实现 findClass() 方法，在loadClass()方法的逻辑里，如果父类加载器加载失败，则会调用自己的findClass()方法来完成加载。不覆盖 loadClass() 方法可以保证自定义的类加载器不去破坏双亲委派模型。</li>
+<li>如果有一个类加载器能加载某各类，称为定义类加载器，所有能成功返回该类的 Class 的类加载器，都被成为初始类加载器</li>
+<li>如果没有指定父加载器，默认就是启动类加载器</li>
+<li>每个类加载器都有自己的命名空间，命名空间由该加载器及其所有父加载器所加载的类构成，不同的命名空间，可以出现类的全路径名相同的情况</li>
+<li>运行时包由同一个类加载器的类构成，决定两个类是否属于同一个运行时包，不仅要看全路径名是否一样，还要看定义类加载器是否相同。只有属于同一个运行时包的类才能实现相互包内可见</li>
+</ol>
+<h3 id="破坏双亲委派模型">破坏双亲委派模型</h3>
+<p>双亲委派模型的问题：父加载器无法向下识别子加载器的加载资源</p>
+<p>为了解决这个问题，引入了线程上下文类加载器，可以通过 Thread 的 setContextClassLoader() 进行设置</p>
+<p>另外一种典型情况就是实现热替换，比如 OSGI 的模块化热部署，它的类加载器就不再是严格按照双亲委派模型，很多可能就在平级的类加载器中执行了</p>
+<h2 id="类连接">类连接</h2>
+<h3 id="类连接中主要验证内容">类连接中主要验证内容</h3>
+<p>类文件结构检查：按照 JVM 规范规定的类文件结构进行</p>
+<p>元数据验证：对字节码描述的信息进行语义分析，保证其符合 Java 语言规范要求</p>
+<p>字节码验证：通过对数据流和控制流进行分析，确保程序语义是合法和符合逻辑的。主要对方法体进行校验</p>
+<p>符号引用验证：对类自身以外的信息，也就是常量池中的各种符号引用，进行匹配校验</p>
+<h3 id="类连接中的解析">类连接中的解析</h3>
+<p>所谓解析就是把常量池中符号引用转换成直接引用的过程，包括：</p>
+<ul>
+<li>符号引用：以一组无歧义的符号来描述所引用的目标，与虚拟机的现实无关</li>
+<li>直接引用：直接指向目标的指针、相对偏移量、或是能间接定位到目标的句柄，是和虚拟机实现相关的</li>
+</ul>
+<p>主要针对：类、接口、字段、类方法、接口方法、方法类型、方法句柄、调用点限定符</p>
+<h2 id="类的初始化">类的初始化</h2>
+<p>类的初始化就是为类的静态变量赋初始值，或者说是执行类构造器 &lt;clinit&gt; 方法的过程</p>
+<ol>
+<li>
+<p>如果类还没有加载和连接，就先加载和连接</p>
+</li>
+<li>
+<p>如果类存在父类，且父类没有初始化，就先初始化父类</p>
+</li>
+<li>
+<p>如果类当中存在初始化语句，就依次执行这些初始化语句</p>
+</li>
+<li>
+<p>如果是接口的话：</p>
+<ul>
+<li>初始化一个类的时候，并不会先初始化它的实现的接口</li>
+<li>初始化一个接口的时候，并不会初始它的父接口</li>
+<li>只有当程序首次使用接口里面的变量或者是调用接口方法的时候，才会使接口初始化</li>
+</ul>
+</li>
+<li>
+<p>调用 Classloader 类的 loadClass 方法来装载一个类，并不会初始化这个类，不是对类的主动使用</p>
+</li>
+</ol>
+<h3 id="类的初始化时机">类的初始化时机</h3>
+<p>Java 程序对类的使用方式分成：主动使用和被动使用，JVM 必须在每个类或接口「首次主动使用」时才初始化他们;被动使用类不会导致类的初始化，主动使用的情况：</p>
+<ol>
+<li>创建类实例</li>
+<li>访问某各类或者接口的静态变量</li>
+<li>调用类的静态方法</li>
+<li>反射某个类</li>
+<li>初始化某个类的子类，而父类还没有初始化</li>
+<li>JVM 启动的时候运行的主类</li>
+<li>当接口中定义了 default 方法，接口实现类初始化的时候</li>
+</ol>
+<h2 id="类的卸载">类的卸载</h2>
+<p>当代表一个类的 Class 对象不再被引用，那么 Class 对象的生命周期就结束了，对应的在方法区中的数据也会被卸载</p>
+<p>Jvm 自带的类加载器装载的类，是不会被卸载的，由用户自定义的类加载器加载的类是可以卸载的</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E6%A6%82%E8%BF%B0">概述</a></li>
+<li><a href="#%E4%B8%BB%E8%A6%81%E5%8A%9F%E8%83%BD">主要功能</a></li>
+<li><a href="#%E8%B7%A8%E5%B9%B3%E5%8F%B0">跨平台</a></li>
+<li><a href="#jvm-%E8%A7%84%E8%8C%83">JVM 规范</a>
+<ul>
+<li><a href="#jvm-%E8%A7%84%E8%8C%83%E4%BD%9C%E7%94%A8">JVM 规范作用</a></li>
+<li><a href="#jvm-%E8%A7%84%E8%8C%83%E5%AE%9A%E4%B9%89%E7%9A%84%E4%B8%BB%E8%A6%81%E5%86%85%E5%AE%B9">JVM 规范定义的主要内容</a></li>
+</ul>
+</li>
+<li><a href="#class-%E5%AD%97%E8%8A%82%E7%A0%81">Class 字节码</a></li>
+<li><a href="#asm">ASM</a>
+<ul>
+<li><a href="#%E8%AE%A4%E8%AF%86-asm">认识 ASM</a></li>
+<li><a href="#asm%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B%E5%92%8C%E6%A0%B8%E5%BF%83api">ASM编程模型和核心API</a></li>
+</ul>
+</li>
+<li><a href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD-%E8%BF%9E%E6%8E%A5%E5%92%8C%E5%88%9D%E5%A7%8B%E5%8C%96">类加载、连接和初始化</a>
+<ul>
+<li><a href="#%E6%A6%82%E8%BF%B0-2">概述</a></li>
+<li><a href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E8%A6%81%E5%AE%8C%E6%88%90%E7%9A%84%E5%8A%9F%E8%83%BD">类加载要完成的功能</a></li>
+<li><a href="#%E5%8A%A0%E8%BD%BD%E7%B1%BB%E7%9A%84%E6%96%B9%E5%BC%8F">加载类的方式</a></li>
+<li><a href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8">类加载器</a></li>
+<li><a href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E7%9A%84%E5%85%B3%E7%B3%BB">类加载器的关系</a></li>
+<li><a href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E8%AF%B4%E6%98%8E">类加载器说明</a></li>
+</ul>
+</li>
+<li><a href="#%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B">双亲委派模型</a>
+<ul>
+<li><a href="#%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B%E8%AF%B4%E6%98%8E">双亲委派模型说明</a></li>
+<li><a href="#%E7%A0%B4%E5%9D%8F%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B">破坏双亲委派模型</a></li>
+</ul>
+</li>
+<li><a href="#%E7%B1%BB%E8%BF%9E%E6%8E%A5">类连接</a>
+<ul>
+<li><a href="#%E7%B1%BB%E8%BF%9E%E6%8E%A5%E4%B8%AD%E4%B8%BB%E8%A6%81%E9%AA%8C%E8%AF%81%E5%86%85%E5%AE%B9">类连接中主要验证内容</a></li>
+<li><a href="#%E7%B1%BB%E8%BF%9E%E6%8E%A5%E4%B8%AD%E7%9A%84%E8%A7%A3%E6%9E%90">类连接中的解析</a></li>
+</ul>
+</li>
+<li><a href="#%E7%B1%BB%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96">类的初始化</a>
+<ul>
+<li><a href="#%E7%B1%BB%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96%E6%97%B6%E6%9C%BA">类的初始化时机</a></li>
+</ul>
+</li>
+<li><a href="#%E7%B1%BB%E7%9A%84%E5%8D%B8%E8%BD%BD">类的卸载</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://sgaxun.github.io/post/hello-gridea/">
+              <h3 class="post-title">
+                使用 Gridea + Github Pages 搭建我的博客
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: '0154dac2d8f124ab8f32',
+    clientSecret: '2cd5ab9c1c2537bd87d00d6bebc2062845b98e9a',
+    repo: 'sgaxun.github.io',
+    owner: 'sgaxun',
+    admin: ['sgaxun'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  <a href="https://beian.miit.gov.cn" target="_blank">豫ICP备19001791号-1</a>
+  <a class="rss" href="https://sgaxun.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

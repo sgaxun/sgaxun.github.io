@@ -1,0 +1,484 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>服务器常用软件安装记录之二 | sgaxun&#39;s blog</title>
+<link rel="shortcut icon" href="https://sgaxun.github.io/favicon.ico?v=1678295674900">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://sgaxun.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="服务器常用软件安装记录之二 | sgaxun&#39;s blog - Atom Feed" href="https://sgaxun.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="
+服务器常用软件安装系列之二
+
+Maven
+下载
+进入官网下载 Maven 安装包，我下载的版本是 apache-maven-3.6.3-bin.tar.gz，放到/usr/local 目录下。
+执行解压命令：
+tar zxvf apach..." />
+    <meta name="keywords" content="Maven,MySQL,Redis,Linux" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://sgaxun.github.io">
+  <img class="avatar" src="https://sgaxun.github.io/images/avatar.png?v=1678295674900" alt="">
+  </a>
+  <h1 class="site-title">
+    sgaxun&#39;s blog
+  </h1>
+  <p class="site-description">
+    Life couldn’t be any more fantastic ，It’s perfect
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/sgaxun" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://twitter.com/sgaxun" target="_blank">
+          <i class="ri-twitter-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://weibo.com/sgaxun" target="_blank">
+          <i class="ri-weibo-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              服务器常用软件安装记录之二
+            </h2>
+            <div class="post-info">
+              <span>
+                2020-03-05
+              </span>
+              <span>
+                8 min read
+              </span>
+              
+                <a href="https://sgaxun.github.io/tag/GqPQ2B_ty/" class="post-tag">
+                  # Maven
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/ew9jHYCiBa/" class="post-tag">
+                  # MySQL
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/T2pA8Bann3/" class="post-tag">
+                  # Redis
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/vougG-GAO/" class="post-tag">
+                  # Linux
+                </a>
+              
+            </div>
+            
+              <img class="post-feature-image" src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/eat-sleep-code.jpeg" alt="">
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <blockquote>
+<p>服务器常用软件安装系列之二</p>
+</blockquote>
+<h2 id="maven">Maven</h2>
+<h3 id="下载">下载</h3>
+<p>进入<a href="https://maven.apache.org/docs/history.html">官网</a>下载 Maven 安装包，我下载的版本是 apache-maven-3.6.3-bin.tar.gz，放到/usr/local 目录下。</p>
+<p>执行解压命令：</p>
+<pre><code class="language-shell">tar zxvf apache-maven-3.6.3-bin.tar.gz
+# 重命名目录
+mv /usr/local/apache-maven-3.6.3 /usr/local/maven
+</code></pre>
+<h3 id="镜像加速">镜像加速</h3>
+<p>这里使用阿里云镜像加速，进入<a href="https://developer.aliyun.com/mvn/guide">阿里云maven使用指南</a>按照教程配置。</p>
+<p>打开 Maven 的配置文件/usr/local/maven/conf/settings.xml，在<mirrors></mirrors> 标签中添加 mirror 子节点:</p>
+<pre><code class="language-xml">&lt;mirror&gt;
+  &lt;id&gt;aliyunmaven&lt;/id&gt;
+  &lt;mirrorOf&gt;*&lt;/mirrorOf&gt;
+  &lt;name&gt;阿里云公共仓库&lt;/name&gt;
+  &lt;url&gt;https://maven.aliyun.com/repository/public&lt;/url&gt;
+&lt;/mirror&gt;
+</code></pre>
+<p>如果想使用其它代理仓库，可在<repositories></repositories>节点中加入对应的仓库使用地址。以使用 spring 代理仓为例：</p>
+<pre><code class="language-xml">&lt;repository&gt;
+  &lt;id&gt;spring&lt;/id&gt;
+  &lt;url&gt;https://maven.aliyun.com/repository/spring&lt;/url&gt;
+  &lt;releases&gt;
+    &lt;enabled&gt;true&lt;/enabled&gt;
+  &lt;/releases&gt;
+  &lt;snapshots&gt;
+    &lt;enabled&gt;true&lt;/enabled&gt;
+  &lt;/snapshots&gt;
+&lt;/repository&gt;
+</code></pre>
+<p>在你的 <strong>pom.xml</strong> 文件<denpendencies></denpendencies>节点中加入你要引用的文件信息：</p>
+<pre><code class="language-xml">&lt;dependency&gt;
+  &lt;groupId&gt;[GROUP_ID]&lt;/groupId&gt;
+  &lt;artifactId&gt;[ARTIFACT_ID]&lt;/artifactId&gt;
+  &lt;version&gt;[VERSION]&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+<p>执行拉取命令：</p>
+<pre><code class="language-shell">mvn install
+</code></pre>
+<h3 id="环境变量">环境变量</h3>
+<p>因为下载的是二进制版安装包，所以解压完，配置好环境变量就可以使用了。</p>
+<p>编辑修改 /etc/profile 文件，在文件末尾添加如下内容，配置 Maven 的安装路径</p>
+<pre><code class="language-shell">export MAVEN_HOME=/usr/local/maven
+export PATH=$MAVEN_HOME/bin:$PATH
+</code></pre>
+<p>接下来执行 <code>source /etc/profile</code> 来刷新环境变量，让 Maven 环境的路径配置生效。</p>
+<h3 id="检查安装结果">检查安装结果</h3>
+<p>执行 <code>mvn -v</code>，能打印出 Maven 版本信息说明安装成功。</p>
+<h2 id="mysql">MySQL</h2>
+<h3 id="准备">准备</h3>
+<p>进入<a href="https://downloads.mysql.com/archives/community/">官网</a>下载安装包，我下载的是 mysql-5.7.30-linux-glibc2.12-x86_64.tar.gz，放在/usr/local目录下。</p>
+<p>如果系统之前自带 Mariadb，先卸载。首先查询已安装的 Mariadb 安装包：</p>
+<pre><code class="language-shell">rpm -qa|grep mariadb
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211219171107934.png" alt="image-20211219171107934" loading="lazy"></figure>
+<p>如果有，挨个卸载</p>
+<pre><code class="language-shell">yum -y remove mariadb-libs-5.5.68-1.el7.x86_64
+</code></pre>
+<p>解压 MySQL 安装包</p>
+<pre><code class="language-shell">cd /usr/local
+tar -zxvf mysql-5.7.30-linux-glibc2.12-x86_64.tar.gz -C /usr/local/
+# 重命名
+mv mysql-5.7.30-linux-glibc2.12-x86_64 mysql
+</code></pre>
+<p>创建 MySQL 用户和用户组</p>
+<pre><code class="language-shell">groupadd mysql
+useradd -g mysql mysql
+</code></pre>
+<p>同时新建/usr/local/mysql/data目录，后续备用。</p>
+<p>修改 MySQL目录的归属用户</p>
+<pre><code>cd /usr/local/mysql
+chown -R mysql:mysql ./
+</code></pre>
+<p>准备 MySQL 的配置文件</p>
+<p>在/etc目录下新建 my.cnf 文件</p>
+<p>写入如下简化配置：</p>
+<pre><code class="language-mysql">[mysql]
+# 设置mysql客户端默认字符集
+default-character-set=utf8
+socket=/var/lib/mysql/mysql.sock
+
+[mysqld]
+skip-name-resolve
+#设置3306端⼝
+port = 3306
+socket=/var/lib/mysql/mysql.sock
+# 设置mysql的安装⽬录
+basedir=/usr/local/mysql
+# 设置mysql数据库的数据的存放⽬录
+datadir=/usr/local/mysql/data
+# 允许最⼤连接数
+max_connections=200
+# 服务端使⽤的字符集默认为8⽐特编码的latin1字符集
+character-set-server=utf8
+# 创建新表时将使⽤的默认存储引擎
+default-storage-engine=INNODB
+lower_case_table_names=1
+max_allowed_packet=16M
+</code></pre>
+<p>同时使用如下命令创建/var/lib/mysql目录，并修改权限：</p>
+<pre><code class="language-mysql">mkdir /var/lib/mysql
+chmod 777 /var/lib/mysql
+</code></pre>
+<h3 id="安装">安装</h3>
+<p>执行如下命令开始安装</p>
+<pre><code class="language-mysql"># 进入 mysql 根目录
+cd /usr/local/mysql
+# 安装
+./bin/mysqld --initialize --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data
+</code></pre>
+<blockquote>
+<p>注意：执行完安装命令后控制台会输出 root 的密码，后面首次登陆需要使用</p>
+</blockquote>
+<h3 id="复制启动脚本到资源目录">复制启动脚本到资源目录</h3>
+<p>执行如下命令复制：</p>
+<pre><code class="language-shell">cp ./support-files/mysql.server /etc/init.d/mysqld
+</code></pre>
+<p>并修改/etc/init.d/mysqld，修改其 basedir 和 datadir 为实际对应目录：</p>
+<pre><code class="language-shell">basedir=/usr/local/mysql
+datadir=/usr/local/mysql/data
+</code></pre>
+<h3 id="设置-mysql-系统服务并开启自启">设置 MySQL 系统服务并开启自启</h3>
+<p>首先增加 mysqld 服务控制脚本执行权限：</p>
+<pre><code class="language-shell">chmod +x /etc/init.d/mysqld
+</code></pre>
+<p>同时将 mysqld 服务加入到系统服务：</p>
+<pre><code class="language-shell">chkconfig --add mysqld
+</code></pre>
+<p>最后检查 mysqld 服务是否已经生效即可：</p>
+<pre><code class="language-shell">chkconfig --list mysqld
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211219174008168.png" alt="image-20211219174008168" loading="lazy"></figure>
+<p>这样就表明 mysqld 服务已经生效了， 在 2、3、4、5运行级别随系统启动而自动启动，以后可以直接使用 service 命令控制 MySQL 的启停。</p>
+<h3 id="启动-mysql">启动 MySQL</h3>
+<p>直接执行</p>
+<pre><code class="language-shell">service mysqld start
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211219174100759.png" alt="image-20211219174100759" loading="lazy"></figure>
+<h3 id="加入环境变量">加入环境变量</h3>
+<p>这样方便以后在任意目录都可以使用 mysql 提供的命令</p>
+<p>编辑 <code>~/.bash_profile</code> 文件，在文件末尾加入如下信息：</p>
+<pre><code class="language-shell">export PATH=$PATH:/usr/local/mysql/bin
+</code></pre>
+<p>最后执行如下命令使环境变量生效</p>
+<pre><code class="language-shell">source ~/.bash_profile
+</code></pre>
+<h3 id="优化">优化</h3>
+<p>以 root 账登录 MySQL，使用上文安装完成提示的密码进行登录</p>
+<pre><code class="language-mysql">mysql -u root -p
+</code></pre>
+<p>在 MySQL 的命令执行如下命令来修改密码</p>
+<pre><code class="language-mysql">alter user user() identified by &quot;新密码&quot;;
+flush privileges;
+</code></pre>
+<p>设置远程登录</p>
+<pre><code class="language-mysql">use mysql;
+update user set user.Host='%' where user.User='root';
+flush privileges;
+</code></pre>
+<p>最后在本地电脑使用数据库连接工具测试即可。</p>
+<h2 id="redis">Redis</h2>
+<h3 id="准备-2">准备</h3>
+<p>前往<a href="https://redis.io/download">官网</a>下载安装包，我下载的是 redis-5.0.8.tar.gz，放在/usr/local目录下。</p>
+<p>解压</p>
+<pre><code class="language-shell">cd /usr/local
+mkdir redis
+cd redis
+</code></pre>
+<p>将 Redis 安装包解压到/usr/local/redis中</p>
+<pre><code class="language-shell">tar zxvf /usr/local/redis-5.0.8.tar.gz -C ./
+</code></pre>
+<p>解压完之后，/usr/local/redis目录中会出现一个 redis-5.0.8 的目录。</p>
+<h3 id="编译安装">编译安装</h3>
+<pre><code class="language-shell">cd redis-5.0.8/
+make &amp;&amp; make install
+</code></pre>
+<h3 id="可能遇见的问题">可能遇见的问题</h3>
+<p>我在使用 arm 架构的 CentOS 时编译出错，<code>cannot find -latomic</code>，latomic 代表的是 libatomic.so，也即是在编译的过程中，需要 libatomic.so 库，而系统又找不到这个库；</p>
+<p>系统可能已经存在libatomic.so，但是不在默认查找路径(/usr/lib之类的路径)，而是在其他路径中。</p>
+<p>使用如下命令来查找是否存在：</p>
+<pre><code class="language-shell">find / -name &quot;libatomic.so*&quot;
+</code></pre>
+<p>如果存在，使用软链接指向/usr/lib</p>
+<pre><code class="language-shell">ln -s /usr/lib64/libatomic.so.1.2.0 /usr/lib/libatomic.so
+</code></pre>
+<p>如果不存在使用命令 <code>yum -y install *atomic*</code> 安装依赖。</p>
+<h3 id="系统服务后台启动">系统服务&amp;后台启动</h3>
+<p>进入 utils 目录，并执行如下脚本即可：</p>
+<pre><code class="language-shell">cd utils/
+./install_server.sh
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211220001658114.png" alt="image-20211220001658114" loading="lazy"></figure>
+<p>按照提示按需安装即可。执行如下命令查看 Redis 的启动结果：</p>
+<pre><code>systemctl status redis_6379.service
+</code></pre>
+<p>启动自带的 redis-cli 客户端，测试通过：</p>
+<pre><code class="language-shell">redis-cli
+</code></pre>
+<h3 id="允许远程">允许远程</h3>
+<p>编辑 redis 配置文件</p>
+<pre><code class="language-shell">vi /etc/redis/6379.conf
+</code></pre>
+<p>将 <code>bind 127.0.0.1</code> 修改为 <code>0.0.0.0</code>，然后重启服务即可</p>
+<pre><code class="language-shell">systemctl restart redis_6379.service
+</code></pre>
+<h3 id="设置访问密码">设置访问密码</h3>
+<p>编辑 redis 配置文件</p>
+<pre><code class="language-shell">vi /etc/redis/6379.conf
+</code></pre>
+<p>找到如下内容</p>
+<pre><code class="language-shell">#requirepass foobared
+</code></pre>
+<p>去掉注释，将 foobared 修改为自己想要的密码，保存即可。</p>
+<pre><code class="language-shell">requirepass 123456
+</code></pre>
+<p>保存，重启 Redis 服务即可。</p>
+<pre><code class="language-shell">systemctl restart redis_6379.service
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#maven">Maven</a>
+<ul>
+<li><a href="#%E4%B8%8B%E8%BD%BD">下载</a></li>
+<li><a href="#%E9%95%9C%E5%83%8F%E5%8A%A0%E9%80%9F">镜像加速</a></li>
+<li><a href="#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F">环境变量</a></li>
+<li><a href="#%E6%A3%80%E6%9F%A5%E5%AE%89%E8%A3%85%E7%BB%93%E6%9E%9C">检查安装结果</a></li>
+</ul>
+</li>
+<li><a href="#mysql">MySQL</a>
+<ul>
+<li><a href="#%E5%87%86%E5%A4%87">准备</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85">安装</a></li>
+<li><a href="#%E5%A4%8D%E5%88%B6%E5%90%AF%E5%8A%A8%E8%84%9A%E6%9C%AC%E5%88%B0%E8%B5%84%E6%BA%90%E7%9B%AE%E5%BD%95">复制启动脚本到资源目录</a></li>
+<li><a href="#%E8%AE%BE%E7%BD%AE-mysql-%E7%B3%BB%E7%BB%9F%E6%9C%8D%E5%8A%A1%E5%B9%B6%E5%BC%80%E5%90%AF%E8%87%AA%E5%90%AF">设置 MySQL 系统服务并开启自启</a></li>
+<li><a href="#%E5%90%AF%E5%8A%A8-mysql">启动 MySQL</a></li>
+<li><a href="#%E5%8A%A0%E5%85%A5%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F">加入环境变量</a></li>
+<li><a href="#%E4%BC%98%E5%8C%96">优化</a></li>
+</ul>
+</li>
+<li><a href="#redis">Redis</a>
+<ul>
+<li><a href="#%E5%87%86%E5%A4%87-2">准备</a></li>
+<li><a href="#%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85">编译安装</a></li>
+<li><a href="#%E5%8F%AF%E8%83%BD%E9%81%87%E8%A7%81%E7%9A%84%E9%97%AE%E9%A2%98">可能遇见的问题</a></li>
+<li><a href="#%E7%B3%BB%E7%BB%9F%E6%9C%8D%E5%8A%A1%E5%90%8E%E5%8F%B0%E5%90%AF%E5%8A%A8">系统服务&amp;后台启动</a></li>
+<li><a href="#%E5%85%81%E8%AE%B8%E8%BF%9C%E7%A8%8B">允许远程</a></li>
+<li><a href="#%E8%AE%BE%E7%BD%AE%E8%AE%BF%E9%97%AE%E5%AF%86%E7%A0%81">设置访问密码</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://sgaxun.github.io/post/jvm-deepin-1/">
+              <h3 class="post-title">
+                JVM 原理探究之一
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: '0154dac2d8f124ab8f32',
+    clientSecret: '2cd5ab9c1c2537bd87d00d6bebc2062845b98e9a',
+    repo: 'sgaxun.github.io',
+    owner: 'sgaxun',
+    admin: ['sgaxun'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  <a href="https://beian.miit.gov.cn" target="_blank">豫ICP备19001791号-1</a>
+  <a class="rss" href="https://sgaxun.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,438 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>服务器常用软件安装记录之一 | sgaxun&#39;s blog</title>
+<link rel="shortcut icon" href="https://sgaxun.github.io/favicon.ico?v=1678295674900">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://sgaxun.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="服务器常用软件安装记录之一 | sgaxun&#39;s blog - Atom Feed" href="https://sgaxun.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="背景
+日常在服务器安装软件的场景发生的不是太多，每次安装总是记不住步骤,总是需要上网查，并不能做到加深记忆,因此产生了记录一下自己日常的操作习惯的想法，并为此研究了一下自己搭建博客，发现利用Github可以在不自己购买服务器的情况下非常简单..." />
+    <meta name="keywords" content="Git,Nginx,Node,Java,Linux" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://sgaxun.github.io">
+  <img class="avatar" src="https://sgaxun.github.io/images/avatar.png?v=1678295674900" alt="">
+  </a>
+  <h1 class="site-title">
+    sgaxun&#39;s blog
+  </h1>
+  <p class="site-description">
+    Life couldn’t be any more fantastic ，It’s perfect
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/sgaxun" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://twitter.com/sgaxun" target="_blank">
+          <i class="ri-twitter-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://weibo.com/sgaxun" target="_blank">
+          <i class="ri-weibo-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              服务器常用软件安装记录之一
+            </h2>
+            <div class="post-info">
+              <span>
+                2020-01-01
+              </span>
+              <span>
+                6 min read
+              </span>
+              
+                <a href="https://sgaxun.github.io/tag/SSKNi_Y7n/" class="post-tag">
+                  # Git
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/4E5CRTKXwL/" class="post-tag">
+                  # Nginx
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/Y_F-UDxIwJ/" class="post-tag">
+                  # Node
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/216dW9c-b/" class="post-tag">
+                  # Java
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/vougG-GAO/" class="post-tag">
+                  # Linux
+                </a>
+              
+            </div>
+            
+              <img class="post-feature-image" src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/eat-sleep-code.jpeg" alt="">
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="背景">背景</h2>
+<p>日常在服务器安装软件的场景发生的不是太多，每次安装总是记不住步骤,总是需要上网查，并不能做到加深记忆,因此产生了记录一下自己日常的操作习惯的想法，并为此研究了一下自己搭建博客，发现利用Github可以在不自己购买服务器的情况下非常简单的搭建起来。下篇文章介绍博客的搭建。</p>
+<!-- more -->
+<p><em>本文安装的软件都是基于Centos 7</em></p>
+<h2 id="git">Git</h2>
+<h3 id="yum安装">yum安装</h3>
+<p>一行命令安装</p>
+<pre><code class="language-shell">yum install git
+</code></pre>
+<h3 id="源码编译安装">源码编译安装</h3>
+<ol>
+<li>下载安装包</li>
+</ol>
+<p>前往官网下载git安装包<a href="https://git-scm.com/downloads">git下载</a>,我下载了最新版git-2.20.1.tar.gz,下载至/usr/local/,将安装包解压</p>
+<pre><code class="language-shell">tar -zxvf git-2.20.1.tar.gz
+</code></pre>
+<ol start="2">
+<li>安装依赖</li>
+</ol>
+<pre><code class="language-shell">yum install curl-devel expat-devel gettext-devel openssl-devel
+zlibdevel gcc-c++ perl-ExtUtils-MakeMaker
+</code></pre>
+<ol start="3">
+<li>编译安装Git</li>
+</ol>
+<p>进入到对应目录，执行配置、编译、安装命令即可</p>
+<pre><code class="language-shell">cd git-2.20.1/
+make configure
+./configure --prefix=/usr/local/git
+make profix=/usr/local/git
+make install
+</code></pre>
+<ol start="4">
+<li>Git加入坏境变量</li>
+</ol>
+<p>编辑配置文件</p>
+<pre><code class="language-shell">vim /etc/profile
+</code></pre>
+<p>尾部加入Git的bin路径配置即可</p>
+<pre><code class="language-shell">export GIT_HOME=/usr/local/git
+export PATH=$PATH:$GIT_HOME/bin
+</code></pre>
+<h2 id="jdk">JDK</h2>
+<h3 id="准备安装包">准备安装包</h3>
+<p>首先去oracle官网下载jdk安装包,<a href="https://www.oracle.com/cn/java/technologies/javase/javase8-archive-downloads.html">JDK下载地址</a>,我下载的的是jdk-8u251-linux-x64.tar.gz,安装包上传至/usr/local目录下。</p>
+<h3 id="卸载openjdk如果有的话">卸载openjdk,如果有的话</h3>
+<p>如果系统带有OpenJDK,首先进行卸载.<br>
+查找已经安装的OpenJDK</p>
+<pre><code class="language-shell">rpm -qa | grep java
+</code></pre>
+<p>然后将查找到的java开头的安装包全都卸载</p>
+<pre><code class="language-shell">yum -y remove java-1.7.0-openjdk-1.7.0.141-2.6.10.5.el7.x86_64 
+yum -y remove java-1.8.0-openjdk-1.8.0.131-11.b12.el7.x86_64
+...省略...
+</code></pre>
+<h3 id="创建目录并解压">创建目录并解压</h3>
+<ol>
+<li>解压,将准备好的安装包解压到当前目录</li>
+</ol>
+<pre><code class="language-shell">cd /usr/local/
+tar -zxvf /usr/local/jdk-8u251-linux-x64.tar.gz -C ./
+</code></pre>
+<p>解压完之后,/usr/local/目录中会出现一个jdk1.8.0_251的文件夹</p>
+<ol start="2">
+<li>重命名<br>
+重命名jdk1.8.0_251文件夹为java</li>
+</ol>
+<pre><code class="language-shell">mv jdk1.8.0_251/ java/
+</code></pre>
+<h3 id="环境变量">环境变量</h3>
+<p>编辑/etc/profile文件,在文件末尾加入如下内容:</p>
+<pre><code class="language-shell">JAVA_HOME=/usr/local/java
+CLASSPATH=$JAVA_HOME/lib/
+PATH=$PATH:$JAVA_HOME/bin
+export PATH JAVA_HOME CLASSPATH
+</code></pre>
+<p>执行如下命令让环境变量生效</p>
+<pre><code class="language-shell">source /etc/profile
+</code></pre>
+<p>输入如下命令验证JDK安装结果</p>
+<pre><code class="language-shell">java -version
+javac
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211219170212162.png" alt="image-20211219170212162" loading="lazy"></figure>
+<h2 id="node">Node</h2>
+<h3 id="下载">下载</h3>
+<p>前往node官网下载最新版安装包,<a href="https://nodejs.org/zh-cn/download/">下载地址</a>,我下载的是node-v11.4.0.tar.gz</p>
+<h3 id="创建目录并解压-2">创建目录并解压</h3>
+<pre><code class="language-shell">cd /usr/local/
+tar -xJvf node-v11.4.0.tar.gz C ./
+mv node-v11.4.0/ node/
+</code></pre>
+<h3 id="配置系统环境变量">配置系统环境变量</h3>
+<p>编辑~/.bash_profile⽂件，在⽂件末尾追加如下信息</p>
+<pre><code class="language-shell"># Nodejs 
+export PATH=/usr/local/node/bin:$PATH
+</code></pre>
+<p>刷新环境变量</p>
+<pre><code class="language-shell">source ~/.bash_profile
+</code></pre>
+<p>使用<code>node -v</code>来检查安装结果</p>
+<h2 id="nginx">Nginx</h2>
+<h3 id="yum安装-2">yum安装</h3>
+<p>yum安装方式非常简单,一条命令即可实现安装和卸载</p>
+<pre><code class="language-shell">yum -y install nginx
+yum remove nginx
+</code></pre>
+<p>yum安装后配置文件的路径是 <code>/etc/nginx/</code><br>
+启动nginx</p>
+<pre><code class="language-shell">service nginx start
+</code></pre>
+<p>关闭nginx</p>
+<pre><code class="language-shell">service nginx stop
+</code></pre>
+<p>重载配置</p>
+<pre><code class="language-shell">service nginx reload
+</code></pre>
+<p>重启服务</p>
+<pre><code class="language-shell">service nginx restart
+</code></pre>
+<p>设置开机启动</p>
+<pre><code class="language-shell">systemctl enable nginx
+</code></pre>
+<h3 id="源码安装">源码安装</h3>
+<p>源码安装之前需要安装一些依赖库<br>
+安装gcc环境</p>
+<pre><code class="language-shell">yum -y install gcc gcc-c++
+</code></pre>
+<p>安装pcre</p>
+<pre><code class="language-shell">sudo yum -y install pcre pcre-devel # 让 nginx 支持重写功能
+</code></pre>
+<p>安装zlib</p>
+<pre><code class="language-shell"># zlib 库提供了很多压缩和解压缩的方式，nginx使用zlib对http包内容进行gzip压缩
+yum -y install zlib zlib-devel
+</code></pre>
+<p>安装openssl</p>
+<pre><code class="language-shell"># 安全套接字层密码库，用于通信加密
+yum -y install openssl openssl-devel
+</code></pre>
+<p>下一步进行nginx安装<br>
+下载压缩包并解压</p>
+<pre><code class="language-shell">cd /usr/local
+wget http://nginx.org/download/nginx-1.10.3.tar.gz
+tar -zxvf nginx-1.10.3.tar.gz
+</code></pre>
+<p>解压完成后进入/nginx-1.10.3目录进行源码编译安装到/usr/local/nginx/</p>
+<pre><code class="language-shell">cd nginx-1.10.3
+./configure --prefix=/usr/local/nginx #检查平台安装环境
+</code></pre>
+<p>编译并安装</p>
+<pre><code class="language-shell">make &amp;&amp; make install
+</code></pre>
+<p>启动服务</p>
+<pre><code class="language-shell">/usr/local/nginx/sbin/nginx
+curl localhost #测试访问
+</code></pre>
+<p>源码安装需要把nginx添加到service服务并设置开机启动</p>
+<p>进入目录 /usr/lib/systemd/system并新增nginx.service文件</p>
+<pre><code class="language-shell">vi /usr/lib/systemd/system/nginx.service
+</code></pre>
+<p>nginx.service文件内容如下</p>
+<pre><code class="language-shell">[Unit]
+Description=nginx - high performance web server
+Documentation=http://nginx.org/en/docs/
+After=network.target remote-fs.target nss-lookup.target
+   
+[Service]
+Type=forking
+PIDFile=/usr/local/nginx/logs/nginx.pid 
+ExecStartPre=/usr/local/nginx/sbin/nginx -t -c /usr/local/nginx/conf/nginx.conf
+ExecStart=/usr/local/nginx/sbin/nginx
+ExecReload=/usr/local/nginx/sbin/nginx -s reload
+ExecStop=/usr/local/nginx/sbin/nginx -s quit
+PrivateTmp=true
+   
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p>设置开机启动</p>
+<pre><code class="language-shell">systemctl enable nginx.service
+</code></pre>
+<p>其它命令</p>
+<pre><code class="language-shell">systemctl start nginx.service # 启动
+systemctl status nginx.service # 查看状态
+systemctl reload nginx.service #重新加载
+systemctl stop nginx.service #停止服务
+systemctl disable nginx.service #关闭开机启动
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E8%83%8C%E6%99%AF">背景</a></li>
+<li><a href="#git">Git</a>
+<ul>
+<li><a href="#yum%E5%AE%89%E8%A3%85">yum安装</a></li>
+<li><a href="#%E6%BA%90%E7%A0%81%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85">源码编译安装</a></li>
+</ul>
+</li>
+<li><a href="#jdk">JDK</a>
+<ul>
+<li><a href="#%E5%87%86%E5%A4%87%E5%AE%89%E8%A3%85%E5%8C%85">准备安装包</a></li>
+<li><a href="#%E5%8D%B8%E8%BD%BDopenjdk%E5%A6%82%E6%9E%9C%E6%9C%89%E7%9A%84%E8%AF%9D">卸载openjdk,如果有的话</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%9B%AE%E5%BD%95%E5%B9%B6%E8%A7%A3%E5%8E%8B">创建目录并解压</a></li>
+<li><a href="#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F">环境变量</a></li>
+</ul>
+</li>
+<li><a href="#node">Node</a>
+<ul>
+<li><a href="#%E4%B8%8B%E8%BD%BD">下载</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%9B%AE%E5%BD%95%E5%B9%B6%E8%A7%A3%E5%8E%8B-2">创建目录并解压</a></li>
+<li><a href="#%E9%85%8D%E7%BD%AE%E7%B3%BB%E7%BB%9F%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F">配置系统环境变量</a></li>
+</ul>
+</li>
+<li><a href="#nginx">Nginx</a>
+<ul>
+<li><a href="#yum%E5%AE%89%E8%A3%85-2">yum安装</a></li>
+<li><a href="#%E6%BA%90%E7%A0%81%E5%AE%89%E8%A3%85">源码安装</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: '0154dac2d8f124ab8f32',
+    clientSecret: '2cd5ab9c1c2537bd87d00d6bebc2062845b98e9a',
+    repo: 'sgaxun.github.io',
+    owner: 'sgaxun',
+    admin: ['sgaxun'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  <a href="https://beian.miit.gov.cn" target="_blank">豫ICP备19001791号-1</a>
+  <a class="rss" href="https://sgaxun.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,429 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spring Boot 自定义 Starter | sgaxun&#39;s blog</title>
+<link rel="shortcut icon" href="https://sgaxun.github.io/favicon.ico?v=1678295674900">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://sgaxun.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Spring Boot 自定义 Starter | sgaxun&#39;s blog - Atom Feed" href="https://sgaxun.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="
+Spring Boot 最强大的功能就是把常用的场景抽取成了一个个 Starter，通过引入这些 Starter，再进行少量配置就能使用相应的功能。
+
+概述
+我们也可以编写自己的自定义启动器。如果我们有一个在我们的组织内使用的内部库，它要..." />
+    <meta name="keywords" content="Spring Boot,Spring,Java" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://sgaxun.github.io">
+  <img class="avatar" src="https://sgaxun.github.io/images/avatar.png?v=1678295674900" alt="">
+  </a>
+  <h1 class="site-title">
+    sgaxun&#39;s blog
+  </h1>
+  <p class="site-description">
+    Life couldn’t be any more fantastic ，It’s perfect
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/sgaxun" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://twitter.com/sgaxun" target="_blank">
+          <i class="ri-twitter-line"></i>
+        </a>
+      
+    
+      
+        <a href="https://weibo.com/sgaxun" target="_blank">
+          <i class="ri-weibo-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Spring Boot 自定义 Starter
+            </h2>
+            <div class="post-info">
+              <span>
+                2021-04-20
+              </span>
+              <span>
+                6 min read
+              </span>
+              
+                <a href="https://sgaxun.github.io/tag/nfcD-CW0a/" class="post-tag">
+                  # Spring Boot
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/GRQmcpgWm/" class="post-tag">
+                  # Spring
+                </a>
+              
+                <a href="https://sgaxun.github.io/tag/216dW9c-b/" class="post-tag">
+                  # Java
+                </a>
+              
+            </div>
+            
+              <img class="post-feature-image" src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/20211220234328.png" alt="">
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <blockquote>
+<p>Spring Boot 最强大的功能就是把常用的场景抽取成了一个个 Starter，通过引入这些 Starter，再进行少量配置就能使用相应的功能。</p>
+</blockquote>
+<h2 id="概述">概述</h2>
+<p>我们也可以编写自己的自定义启动器。如果我们有一个在我们的组织内使用的内部库，它要在 Spring Boot 上下文中使用，最好也为它编写一个 Starter。</p>
+<p>这些 starters 使开发人员可以避免冗长的配置，并快速启动。但是由于后台发生了很多事情，有时很难理解注释或仅仅在pom.xml中包含依赖项是如何启用这么多功能的。</p>
+<h2 id="原理">原理</h2>
+<p>你可以到这里查看 <a href="https://www.baeldung.com/spring-boot-custom-starter">Spring 官网</a>关于 Starter 的介绍。</p>
+<h3 id="自动配置类">自动配置类</h3>
+<p>当 Spring Boot 启动时，它会在类路径中查找名叫 <em>spring.factories</em> 的文件。该文件位于 META-INF 目录中。例如以下部分片段：</p>
+<pre><code class="language-shell"># Auto Configure
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration,\
+org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfiguration,\
+org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration,\
+org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+</code></pre>
+<p>Spring Boot 会自动装载上文配置的类，RabbitMQ、Cassandra、MongoDB 和 Hibernate。</p>
+<p>可以使用 @ConditionalOnClass 来决定是否初始化，以下是 MongoAutoConfiguration 类中的代码片段。</p>
+<pre><code class="language-java">@Configuration
+@ConditionalOnClass(MongoClient.class)
+@EnableConfigurationProperties(MongoProperties.class)
+@ConditionalOnMissingBean(type = &quot;org.springframework.data.mongodb.MongoDbFactory&quot;)
+public class MongoAutoConfiguration {
+    // configuration code
+}
+</code></pre>
+<p>如果类路径中有 MongoClient 可用，此配置类将运行，并使用用默认配置设置初始化的 MongoClient 注册成 Bean。</p>
+<h3 id="自定义属性">自定义属性</h3>
+<p>类中使用 @ConfigurationProperties 读取配置文件中自定义的值。</p>
+<pre><code class="language-java">@ConfigurationProperties(prefix = &quot;spring.data.mongodb&quot;)
+public class MongoProperties {
+
+    private String host;
+
+    // other fields with standard getters and setters
+}
+</code></pre>
+<p>如果要为 MongoProperties 中的 host 自定义值，在配置文件中增加以下内容即可</p>
+<pre><code class="language-yaml">spring.data.mongodb.host = 127.0.0.1
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211222231242742.png" alt="image-20211222231242742" loading="lazy"></figure>
+<h2 id="自定义-starter">自定义 Starter</h2>
+<p>了解原理之后自定义一个 Starter 就变得简单了。</p>
+<h3 id="命名规范">命名规范</h3>
+<p><strong>官方 Starter</strong></p>
+<ul>
+<li>前缀： spring-boot-starter-</li>
+<li>模式： spring-boot-starter-模块名</li>
+<li>举例： spring-boot-starter-web、spring-boot-starter-jdbc</li>
+</ul>
+<p><strong>自定义 Starter</strong></p>
+<ul>
+<li>后缀： -spring-boot-starter</li>
+<li>模式： 模块-spring-boot-starter</li>
+<li>距离： mybatis-spring-boot-starter</li>
+</ul>
+<h3 id="创建-starter">创建 Starter</h3>
+<p>首先创建一个 spring-boot-custom-starter 的项目，项目代码我已上传到我的 <a href="https://github.com/sgaxun/spring-boot-custom-starter">Github</a>，包含三个项目，结构如下图</p>
+<img src="https://raw.githubusercontent.com/sgaxun/image-hosting/main/img/image-20211223222801328.png" alt="image-20211223222801328" style="zoom:50%;" />
+<ul>
+<li>hello-autoconfigure：starter 的具体实现模块</li>
+<li>hello-spring-boot-starter：引入hello-autoconfigure 模块</li>
+<li>hello-starter-test：测试模块</li>
+</ul>
+<h3 id="hello-autoconfigure-模块">hello-autoconfigure 模块</h3>
+<p>pom.xml 依赖</p>
+<pre><code class="language-xml">&lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot&lt;/artifactId&gt;
+            &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-autoconfigure&lt;/artifactId&gt;
+            &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-configuration-processor&lt;/artifactId&gt;
+            &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+            &lt;optional&gt;true&lt;/optional&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+
+</code></pre>
+<p>编写配置类，创建一个 HelloProperties 用于保存配置信息</p>
+<pre><code class="language-java">@ConfigurationProperties(prefix = &quot;hello.test&quot;)
+public class HelloProperties {
+
+    private String msg = &quot;hello&quot;;
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
+    }
+}
+</code></pre>
+<p>创建 Service，定义 getMsg 方法用于获取配置信息</p>
+<pre><code class="language-java">public class HelloService {
+
+    private String msg;
+
+    public HelloService(String msg) {
+        this.msg = msg;
+    }
+
+    public String getMsg() {
+        return this.msg;
+    }
+}
+</code></pre>
+<p>创建自动化配置类</p>
+<ul>
+<li>创建一个 AutoConfiguration，引用定义好的配置信息</li>
+<li>在 AutoConfiguration 中实现 bean 的注入以及配置信息的读取</li>
+<li>把这个类加入 spring.factories 配置文件中进行声明</li>
+</ul>
+<pre><code class="language-java">@Configuration
+@ConditionalOnClass(HelloService.class)
+@ConditionalOnMissingBean(HelloService.class)
+@EnableConfigurationProperties(HelloProperties.class)
+public class HelloAutoConfiguration {
+
+    @Autowired
+    private HelloProperties helloProperties;
+
+    @Bean
+    @ConditionalOnMissingBean
+    public HelloService helloService() {
+        HelloService helloService = new HelloService(helloProperties.getMsg());
+        return helloService;
+    }
+}
+</code></pre>
+<p>编写 spring.factories，路径是 resources/META-INF</p>
+<pre><code class="language-java">org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  org.example.config.HelloAutoConfiguration
+</code></pre>
+<p>下一步通过运行 <code>mvn install</code> 命令，将这个项目打包 jar 包部署到本地仓库</p>
+<h3 id="hello-spring-boot-starter-模块">hello-spring-boot-starter 模块</h3>
+<p>只保留 pom.xml 文件，引入 hello-autoconfigure 模块</p>
+<pre><code class="language-xml">&lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter&lt;/artifactId&gt;
+            &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.example&lt;/groupId&gt;
+            &lt;artifactId&gt;hello-autoconfigure&lt;/artifactId&gt;
+            &lt;version&gt;${hello.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+</code></pre>
+<h3 id="hello-starter-test">hello-starter-test</h3>
+<p>测试模块，依赖 test-spring-boot-starter</p>
+<p>application.yml 配置文件，不配置将使用默认值，输出 hello：</p>
+<pre><code class="language-shell">test
+	properties: hello again
+</code></pre>
+<p>测试</p>
+<pre><code class="language-java">@SpringBootApplication
+public class HelloStarterTestApplication implements CommandLineRunner {
+
+    @Resource
+    HelloService helloService;
+
+    public static void main(String[] args) {
+        SpringApplication.run(HelloStarterTestApplication.class, args);
+    }
+
+
+    @Override
+    public void run(String... args) throws Exception {
+        System.out.println(this.helloService.getMsg());
+    }
+}
+</code></pre>
+<p>测试成功将输出 hello again。</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E6%A6%82%E8%BF%B0">概述</a></li>
+<li><a href="#%E5%8E%9F%E7%90%86">原理</a>
+<ul>
+<li><a href="#%E8%87%AA%E5%8A%A8%E9%85%8D%E7%BD%AE%E7%B1%BB">自动配置类</a></li>
+<li><a href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E5%B1%9E%E6%80%A7">自定义属性</a></li>
+</ul>
+</li>
+<li><a href="#%E8%87%AA%E5%AE%9A%E4%B9%89-starter">自定义 Starter</a>
+<ul>
+<li><a href="#%E5%91%BD%E5%90%8D%E8%A7%84%E8%8C%83">命名规范</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA-starter">创建 Starter</a></li>
+<li><a href="#hello-autoconfigure-%E6%A8%A1%E5%9D%97">hello-autoconfigure 模块</a></li>
+<li><a href="#hello-spring-boot-starter-%E6%A8%A1%E5%9D%97">hello-spring-boot-starter 模块</a></li>
+<li><a href="#hello-starter-test">hello-starter-test</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://sgaxun.github.io/post/mac-app/">
+              <h3 class="post-title">
+                在用的常用 Mac 软件
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: '0154dac2d8f124ab8f32',
+    clientSecret: '2cd5ab9c1c2537bd87d00d6bebc2062845b98e9a',
+    repo: 'sgaxun.github.io',
+    owner: 'sgaxun',
+    admin: ['sgaxun'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  <a href="https://beian.miit.gov.cn" target="_blank">豫ICP备19001791号-1</a>
+  <a class="rss" href="https://sgaxun.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>
